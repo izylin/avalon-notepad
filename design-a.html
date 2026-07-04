@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>阿瓦隆笔记本网页原型 - 方案 A：沉稳桌面</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182026;
+      --muted: #64727f;
+      --line: #dce3e8;
+      --paper: #f6f8f7;
+      --panel: #ffffff;
+      --red: #b8463e;
+      --green: #2d7d65;
+      --blue: #376f9f;
+      --gold: #b1812f;
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #eef2f1;
+      color: var(--ink);
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    .prototype-shell {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1440px;
+      margin: 0 auto 20px;
+      padding: 12px;
+      border: 1px solid #d7dfdc;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .92);
+      backdrop-filter: blur(12px);
+    }
+
+    .title-block h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .title-block p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .style-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .style-switcher button {
+      border: 1px solid #cad4d2;
+      background: #fff;
+      color: #263238;
+      border-radius: 999px;
+      min-height: 36px;
+      padding: 0 14px;
+      cursor: pointer;
+    }
+
+    .style-switcher button.active {
+      background: #20302d;
+      border-color: #20302d;
+      color: #fff;
+    }
+
+    .canvas {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .variant {
+      display: none;
+    }
+
+    .variant.active {
+      display: block;
+    }
+
+    .variant-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 0 0 16px;
+    }
+
+    .variant-head h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .variant-head p {
+      max-width: 600px;
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .artboards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(300px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .artboard {
+      min-height: 760px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      box-shadow: 0 12px 30px rgba(24, 32, 38, .08);
+    }
+
+    .screen-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .7);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .phone {
+      width: 100%;
+      min-height: 718px;
+      padding: 22px;
+    }
+
+    .app-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .ghost-btn,
+    .primary-btn,
+    .icon-btn {
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      cursor: default;
+    }
+
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 18px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hero-actions .ghost-btn {
+      min-height: 46px;
+      border-color: rgba(255, 255, 255, .52);
+      background: rgba(255, 255, 255, .12);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .ghost-btn {
+      min-height: 36px;
+      padding: 0 12px;
+      border-color: var(--line);
+      background: rgba(255, 255, 255, .8);
+      color: var(--ink);
+    }
+
+    .icon-btn {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-color: var(--line);
+      background: rgba(255, 255, 255, .8);
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .hero {
+      display: grid;
+      align-content: end;
+      min-height: 290px;
+      padding: 22px;
+      border-radius: var(--radius);
+      color: #fff;
+      background:
+        linear-gradient(180deg, rgba(13, 19, 23, .16), rgba(13, 19, 23, .82)),
+        linear-gradient(135deg, #334845, #7e3d38 48%, #c09a4a);
+    }
+
+    .hero h3 {
+      max-width: 360px;
+      margin: 0 0 10px;
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 420px;
+      margin: 0 0 18px;
+      color: rgba(255, 255, 255, .82);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .rules {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .rule-row,
+    .panel,
+    .mission-row,
+    .log-entry,
+    .role-chip,
+    .seat {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .rule-row {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .rule-index {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #edf2f0;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .rule-row h4,
+    .panel h4,
+    .mission-row h4,
+    .log-entry h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .rule-row p,
+    .panel p,
+    .mission-row p,
+    .log-entry p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 22px 0 10px;
+    }
+
+    .section-title h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .segment {
+      min-height: 38px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .segment.selected {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .role-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 56px;
+      padding: 12px;
+    }
+
+    .role-chip strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .role-chip span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .toggle {
+      position: relative;
+      flex: 0 0 auto;
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      background: #cad4d2;
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+    }
+
+    .toggle.on {
+      background: var(--green);
+    }
+
+    .toggle.on::after {
+      left: 19px;
+    }
+
+    .mission-row {
+      display: grid;
+      grid-template-columns: 54px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 66px;
+      padding: 12px;
+    }
+
+    .mission-badge {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #edf2f0;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .mission-form {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .mission-form-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .mission-form-head h4 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .mission-form-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .mission-form > p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .mission-input-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .mission-input {
+      min-height: 64px;
+      padding: 9px 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8faf9;
+    }
+
+    .mission-input label {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .mission-input strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--ink);
+      font-size: 17px;
+    }
+
+    .mission-input.protected {
+      border-color: rgba(177, 129, 47, .36);
+      background: rgba(177, 129, 47, .1);
+    }
+
+    .seat-map {
+      position: relative;
+      min-height: 318px;
+      margin: 6px 0 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .table-core {
+      position: absolute;
+      inset: 78px 84px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f5f7f6;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .seat {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 66px;
+      min-height: 58px;
+      padding: 7px;
+      text-align: center;
+      box-shadow: 0 7px 14px rgba(24, 32, 38, .07);
+    }
+
+    .seat strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .seat span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .mission-pager {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .pager-tab {
+      min-height: 50px;
+      padding: 7px 6px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .pager-tab strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .pager-tab.good-win {
+      border-color: rgba(55, 111, 159, .42);
+      background: rgba(55, 111, 159, .13);
+      color: var(--blue);
+    }
+
+    .pager-tab.good-win strong {
+      color: var(--blue);
+    }
+
+    .pager-tab.bad-win {
+      border-color: rgba(184, 70, 62, .42);
+      background: rgba(184, 70, 62, .12);
+      color: var(--red);
+    }
+
+    .pager-tab.bad-win strong {
+      color: var(--red);
+    }
+
+    .pager-tab.active {
+      border-color: rgba(24, 32, 38, .38);
+      box-shadow: inset 0 0 0 2px rgba(24, 32, 38, .16);
+    }
+
+    .add-table-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      border: 1px dashed rgba(177, 129, 47, .55);
+      border-radius: var(--radius);
+      background: rgba(177, 129, 47, .08);
+      color: #73541b;
+      font-weight: 800;
+    }
+
+    .add-table-btn .plus-dot {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #73541b;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .launch-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .launch-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .launch-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 12px 0;
+    }
+
+    .launch-head h4 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .launch-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .launch-card .seat-map {
+      min-height: 242px;
+      margin: 10px 12px 0;
+      background: #f8faf9;
+    }
+
+    .launch-card .u-table {
+      background: linear-gradient(180deg, #fbfcfb, #f4f7f6);
+    }
+
+    .launch-card .u-table .table-core {
+      inset: 64px 66px 34px;
+      align-items: end;
+      padding-bottom: 24px;
+      border: 14px solid #e2e9e7;
+      border-bottom: 0;
+      border-radius: 58px 58px 8px 8px;
+      background: transparent;
+      color: #596873;
+      font-weight: 700;
+    }
+
+    .launch-card .seat {
+      width: 58px;
+      min-height: 50px;
+      padding: 6px;
+    }
+
+    .launch-card .seat span {
+      font-size: 9px;
+    }
+
+    .seat.on-team {
+      border-color: rgba(177, 129, 47, .58);
+      background: rgba(177, 129, 47, .16);
+      color: #7b5918;
+    }
+
+    .seat.captain {
+      box-shadow: 0 0 0 3px rgba(177, 129, 47, .12), 0 7px 14px rgba(24, 32, 38, .07);
+    }
+
+    .seat.on-team span {
+      color: #7b5918;
+      font-weight: 700;
+    }
+
+    .seat.captain.on-team {
+      border-color: rgba(177, 129, 47, .7);
+      background: rgba(177, 129, 47, .2);
+    }
+
+    .leader-flag {
+      margin-left: 2px;
+      font-size: 11px;
+      vertical-align: 1px;
+    }
+
+    .u1 { left: 20px; bottom: 26px; }
+    .u2 { left: 20px; top: 102px; }
+    .u3 { left: 54px; top: 28px; }
+    .u4 { left: 125px; top: 18px; }
+    .u5 { right: 125px; top: 18px; }
+    .u6 { right: 54px; top: 28px; }
+    .u7 { right: 20px; top: 102px; }
+    .u8 { right: 20px; bottom: 26px; }
+
+    .save-confirm {
+      display: grid;
+      gap: 10px;
+      margin: -8px 0 12px;
+      padding: 12px;
+      border: 1px solid rgba(177, 129, 47, .36);
+      border-radius: var(--radius);
+      background: #fffaf0;
+      box-shadow: 0 8px 18px rgba(24, 32, 38, .07);
+    }
+
+    .save-confirm strong {
+      color: #60491c;
+      font-size: 13px;
+    }
+
+    .save-confirm p {
+      margin: -5px 0 0;
+      color: #756745;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .confirm-actions .ghost-btn,
+    .confirm-actions .primary-btn {
+      min-height: 32px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .vote-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(246, 248, 247, .7);
+    }
+
+    .vote-box {
+      min-height: 52px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .vote-box label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .vote-box strong {
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .vote-box.reject {
+      border-color: rgba(184, 70, 62, .26);
+      background: rgba(184, 70, 62, .07);
+    }
+
+    .vote-box.reject strong {
+      color: var(--red);
+    }
+
+    .note-paper {
+      min-height: 180px;
+      padding: 15px 14px 18px;
+      border: 1px solid #d8c795;
+      border-radius: var(--radius);
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          #fffaf0 0,
+          #fffaf0 30px,
+          #e8dcc0 31px
+        );
+      box-shadow: 0 8px 20px rgba(24, 32, 38, .06);
+    }
+
+    .note-paper h4 {
+      margin: 0 0 12px;
+      color: #60491c;
+      font-size: 14px;
+    }
+
+    .note-paper p {
+      margin: 0;
+      color: #51483c;
+      font-size: 12px;
+      line-height: 2.55;
+    }
+
+    .s1 { left: 42%; top: 14px; }
+    .s2 { right: 46px; top: 50px; }
+    .s3 { right: 16px; top: 146px; }
+    .s4 { right: 72px; bottom: 26px; }
+    .s5 { left: 42%; bottom: 14px; }
+    .s6 { left: 72px; bottom: 26px; }
+    .s7 { left: 16px; top: 146px; }
+    .s8 { left: 46px; top: 50px; }
+
+    .record-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .mini-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef2f1;
+      color: #3a464c;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tag.good { background: rgba(45, 125, 101, .12); color: var(--green); }
+    .tag.bad { background: rgba(184, 70, 62, .12); color: var(--red); }
+    .tag.blue { background: rgba(55, 111, 159, .12); color: var(--blue); }
+    .tag.gold { background: rgba(177, 129, 47, .14); color: #856018; }
+
+    .log-entry {
+      padding: 12px;
+    }
+
+    .log-entry + .log-entry {
+      margin-top: 8px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field {
+      min-height: 54px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .72);
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .field strong {
+      font-size: 13px;
+    }
+
+    .variant-b {
+      --ink: #1f2b37;
+      --muted: #66717c;
+      --line: #d8dde5;
+      --paper: #f7f5ef;
+      --panel: #fffdf8;
+      --green: #377f75;
+      --red: #a94f45;
+      --blue: #496f92;
+      --gold: #b48938;
+    }
+
+    .variant-b .hero {
+      background:
+        linear-gradient(180deg, rgba(31, 43, 55, .18), rgba(31, 43, 55, .86)),
+        linear-gradient(135deg, #496f92, #377f75 52%, #b48938);
+    }
+
+    .variant-b .brand-mark,
+    .variant-b .primary-btn,
+    .variant-b .segment.selected {
+      background: #24313c;
+    }
+
+    .variant-c {
+      --ink: #20201f;
+      --muted: #6f6d68;
+      --line: #ddd8cf;
+      --paper: #f8f7f3;
+      --panel: #ffffff;
+      --green: #3e7c59;
+      --red: #9e493f;
+      --blue: #315f82;
+      --gold: #a87331;
+    }
+
+    .variant-c .phone {
+      padding: 18px;
+    }
+
+    .variant-c .hero {
+      min-height: 260px;
+      background:
+        linear-gradient(180deg, rgba(32, 32, 31, .14), rgba(32, 32, 31, .83)),
+        repeating-linear-gradient(45deg, #315f82 0 16px, #3e7c59 16px 32px, #a87331 32px 48px, #9e493f 48px 64px);
+    }
+
+    .variant-c .rule-row,
+    .variant-c .panel,
+    .variant-c .mission-row,
+    .variant-c .log-entry,
+    .variant-c .role-chip,
+    .variant-c .seat {
+      box-shadow: none;
+    }
+
+    @media (max-width: 1120px) {
+      .artboards {
+        grid-template-columns: 1fr;
+      }
+
+      .artboard {
+        min-height: auto;
+      }
+
+      .phone {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .prototype-shell {
+        padding: 12px;
+      }
+
+      .topbar,
+      .variant-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .style-switcher {
+        justify-content: flex-start;
+      }
+
+      .hero h3 {
+        font-size: 28px;
+      }
+
+      .role-grid,
+      .two-col,
+      .mission-input-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .seat-map {
+        min-height: 286px;
+      }
+
+      .table-core {
+        inset: 78px 72px;
+      }
+
+      .seat {
+        width: 58px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype-shell">
+    <header class="topbar">
+      <div class="title-block">
+        <h1>阿瓦隆笔记本网页原型</h1>
+        <p>成功发车翻页、圆桌记录、投票与身份推测。</p>
+      </div>
+    </header>
+
+    <section class="canvas">
+      <article id="variant-a" class="variant variant-a active">
+        <div class="variant-head">
+          <div>
+            <h2>方案 A：沉稳桌面</h2>
+            <p>适合边玩边快速记录，强调座位图、任务轮次和推理标签，整体像一张安静的战局控制台。</p>
+          </div>
+        </div>
+        <div class="artboards">
+          <section class="artboard">
+            <div class="screen-label"><span>首页</span><span>375 x 812</span></div>
+            <div class="phone">
+              <nav class="app-nav">
+                <div class="brand"><span class="brand-mark">A</span><span>Avalon Note</span></div>
+                <button class="icon-btn" aria-label="设置">☰</button>
+              </nav>
+              <div class="hero">
+                <h3>阿瓦隆现场笔记</h3>
+                <p>记录上车、投票、任务结果、跳身份和个人推测。全部数据只保存在本机。</p>
+                <div class="hero-actions">
+                  <button class="primary-btn">新开一局</button>
+                  <button class="ghost-btn">从存档继续</button>
+                </div>
+              </div>
+              <div class="section-title"><h3>规则介绍</h3><button class="ghost-btn">查看全部</button></div>
+              <div class="rules">
+                <div class="rule-row"><span class="rule-index">1</span><div><h4>阵营目标</h4><p>好人完成三次任务，坏人阻止任务或刺杀梅林。</p></div></div>
+                <div class="rule-row"><span class="rule-index">2</span><div><h4>发车与投票</h4><p>队长提名任务队伍，所有玩家投赞成或反对。</p></div></div>
+                <div class="rule-row"><span class="rule-index">3</span><div><h4>任务记录</h4><p>任务成员暗中提交成功或失败，记录结果用于复盘。</p></div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="artboard">
+            <div class="screen-label"><span>人数与角色</span><span>配置局面</span></div>
+            <div class="phone">
+              <nav class="app-nav">
+                <button class="icon-btn" aria-label="返回">‹</button>
+                <div class="brand">新开一局</div>
+                <button class="ghost-btn">保存</button>
+              </nav>
+              <div class="section-title"><h3>玩家人数</h3><span class="tag blue">8 人局</span></div>
+              <div class="segmented">
+                <button class="segment">5</button><button class="segment">6</button><button class="segment">7</button><button class="segment selected">8</button><button class="segment">9</button>
+              </div>
+              <div class="section-title"><h3>本局角色</h3><button class="ghost-btn">推荐配置</button></div>
+              <div class="role-grid">
+                <div class="role-chip"><div><strong>梅林</strong><span>好人核心</span></div><span class="toggle on"></span></div>
+                <div class="role-chip"><div><strong>派西维尔</strong><span>识别梅林</span></div><span class="toggle on"></span></div>
+                <div class="role-chip"><div><strong>莫甘娜</strong><span>伪装梅林</span></div><span class="toggle on"></span></div>
+                <div class="role-chip"><div><strong>刺客</strong><span>终局刺杀</span></div><span class="toggle on"></span></div>
+                <div class="role-chip"><div><strong>莫德雷德</strong><span>梅林不可见</span></div><span class="toggle on"></span></div>
+                <div class="role-chip"><div><strong>奥伯伦</strong><span>坏人互不见</span></div><span class="toggle"></span></div>
+              </div>
+              <div class="section-title"><h3>任务人数</h3><span class="tag">默认可直接用</span></div>
+              <div class="mission-form">
+                <div class="mission-form-head">
+                  <div>
+                    <h4>8 人局任务配置</h4>
+                    <p>像填空题一样改数字；不改就按默认任务人数执行。</p>
+                  </div>
+                  <button class="ghost-btn">重置默认</button>
+                </div>
+                <p>第 4 轮是保护轮，默认 5 人上车，需要 2 张失败票才算坏人任务成功。</p>
+                <div class="mission-input-grid">
+                  <div class="mission-input"><label>任务 1 人数</label><strong>3</strong></div>
+                  <div class="mission-input"><label>任务 2 人数</label><strong>4</strong></div>
+                  <div class="mission-input"><label>任务 3 人数</label><strong>4</strong></div>
+                  <div class="mission-input protected"><label>任务 4 保护轮</label><strong>5 / 2坏</strong></div>
+                  <div class="mission-input"><label>任务 5 人数</label><strong>5</strong></div>
+                </div>
+              </div>
+              <button class="primary-btn" style="width:100%;margin-top:18px;">进入座位图</button>
+            </div>
+          </section>
+
+          <section class="artboard">
+            <div class="screen-label"><span>正式记录</span><span>成功发车翻页</span></div>
+            <div class="phone">
+              <nav class="app-nav">
+                <button class="icon-btn" aria-label="返回并询问保存">‹</button>
+                <div class="brand">8 人局战况</div>
+                <button class="icon-btn" aria-label="增加圆桌图" title="增加圆桌图">＋</button>
+              </nav>
+
+              <div class="save-confirm">
+                <strong>返回前是否保存本局记录？</strong>
+                <p>点击左上角返回时弹出，避免误退丢失当前推理。</p>
+                <div class="confirm-actions">
+                  <button class="primary-btn">保存并返回</button>
+                  <button class="ghost-btn">不保存</button>
+                  <button class="ghost-btn">继续记录</button>
+                </div>
+              </div>
+
+              <div class="mission-pager">
+                <button class="pager-tab good-win"><strong>任务 1</strong>好人成功</button>
+                <button class="pager-tab bad-win"><strong>任务 2</strong>坏人成功</button>
+                <button class="pager-tab good-win active"><strong>任务 3</strong>好人成功</button>
+                <button class="pager-tab"><strong>任务 4</strong>未发车</button>
+                <button class="pager-tab"><strong>任务 5</strong>未发车</button>
+              </div>
+
+              <div class="launch-stack">
+                <div class="launch-card">
+                  <div class="launch-head">
+                    <div>
+                      <h4>任务 3 · 第 1 次发车 · 1 号队长</h4>
+                      <p>队长顺序轮到 1 号，队伍 3, 5, 6, 8</p>
+                    </div>
+                    <span class="tag bad">未通过</span>
+                  </div>
+                  <div class="seat-map u-table">
+                    <div class="table-core">队长 1 号<br>上车 3, 5, 6, 8</div>
+                    <div class="seat u1 captain"><strong>1<span class="leader-flag">🚩</span></strong><span>队长</span></div>
+                    <div class="seat u2"><strong>2</strong><span>反对</span></div>
+                    <div class="seat u3 on-team"><strong>3</strong><span>上车</span></div>
+                    <div class="seat u4"><strong>4</strong><span>未定</span></div>
+                    <div class="seat u5 on-team"><strong>5</strong><span>上车</span></div>
+                    <div class="seat u6 on-team"><strong>6</strong><span>上车</span></div>
+                    <div class="seat u7"><strong>7</strong><span>反对</span></div>
+                    <div class="seat u8 on-team"><strong>8</strong><span>上车</span></div>
+                  </div>
+                  <div class="vote-strip">
+                    <div class="vote-box"><label>赞成发车</label><strong>1, 3, 5, 6</strong></div>
+                    <div class="vote-box reject"><label>反对发车</label><strong>2, 4, 7, 8</strong></div>
+                  </div>
+                </div>
+
+                <div class="launch-card">
+                  <div class="launch-head">
+                    <div>
+                      <h4>任务 3 · 第 2 次发车 · 2 号队长</h4>
+                      <p>队长顺序轮到 2 号，队伍 2, 3, 5, 8</p>
+                    </div>
+                    <span class="tag bad">未通过</span>
+                  </div>
+                  <div class="seat-map u-table">
+                    <div class="table-core">队长 2 号<br>上车 2, 3, 5, 8</div>
+                    <div class="seat u1"><strong>1</strong><span>赞成</span></div>
+                    <div class="seat u2 captain on-team"><strong>2<span class="leader-flag">🚩</span></strong><span>上车</span></div>
+                    <div class="seat u3 on-team"><strong>3</strong><span>上车</span></div>
+                    <div class="seat u4"><strong>4</strong><span>反对</span></div>
+                    <div class="seat u5 on-team"><strong>5</strong><span>上车</span></div>
+                    <div class="seat u6"><strong>6</strong><span>观察</span></div>
+                    <div class="seat u7"><strong>7</strong><span>反对</span></div>
+                    <div class="seat u8 on-team"><strong>8</strong><span>上车</span></div>
+                  </div>
+                  <div class="vote-strip">
+                    <div class="vote-box"><label>赞成发车</label><strong>2, 3, 5, 8</strong></div>
+                    <div class="vote-box reject"><label>反对发车</label><strong>1, 4, 6, 7</strong></div>
+                  </div>
+                </div>
+
+                <div class="launch-card">
+                  <div class="launch-head">
+                    <div>
+                      <h4>任务 3 · 第 3 次发车 · 3 号队长</h4>
+                      <p>队长顺序轮到 3 号，队伍 3, 4, 5, 8</p>
+                    </div>
+                    <span class="tag blue">好人任务成功</span>
+                  </div>
+                  <div class="seat-map u-table">
+                    <div class="table-core">队长 3 号<br>上车 3, 4, 5, 8</div>
+                    <div class="seat u1"><strong>1</strong><span>赞成</span></div>
+                    <div class="seat u2"><strong>2</strong><span>反对</span></div>
+                    <div class="seat u3 captain on-team"><strong>3<span class="leader-flag">🚩</span></strong><span>上车</span></div>
+                    <div class="seat u4 on-team"><strong>4</strong><span>上车</span></div>
+                    <div class="seat u5 on-team"><strong>5</strong><span>上车</span></div>
+                    <div class="seat u6"><strong>6</strong><span>观察</span></div>
+                    <div class="seat u7"><strong>7</strong><span>反对</span></div>
+                    <div class="seat u8 on-team"><strong>8</strong><span>上车</span></div>
+                  </div>
+                  <div class="vote-strip">
+                    <div class="vote-box"><label>赞成发车</label><strong>1, 3, 4, 5, 6, 8</strong></div>
+                    <div class="vote-box reject"><label>反对发车</label><strong>2, 7</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section-title"><h3>身份与推测</h3><button class="ghost-btn">新增</button></div>
+              <div class="note-paper">
+                <h4>个人推测</h4>
+                <p>6 号跳梅林暂记观察；2 和 7 多次反对成功车，坏面上升。<br>5 连续被带但任务 3 成功，暂回落。1 号这轮没上车但作为队长愿意开 3、5、8，需要回看他前两轮票型。<br><br></p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
