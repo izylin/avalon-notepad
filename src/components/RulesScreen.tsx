@@ -15,51 +15,7 @@ function RuleList({ short = false }: { short?: boolean }) {
 
 export { RuleList };
 
-function RoleRuleList() {
-  const groups: { side: string; className: string; items: [string, string][] }[] = [
-    {
-      side: "蓝方",
-      className: "blue",
-      items: [
-        ["梅林", "知道除了莫德雷德以外的红方牌"],
-        ["派西维尔", "知道梅林和莫甘娜，但不知道分别是谁"],
-        ["亚瑟的忠臣", "无特殊能力蓝方牌"]
-      ]
-    },
-    {
-      side: "红方",
-      className: "red",
-      items: [
-        ["莫德雷德", "梅林看不到他"],
-        ["莫甘娜", "假扮梅林，迷惑派西维尔"],
-        ["奥伯伦", "看不到其他坏人，其他坏人也看不到他"],
-        ["刺客", "在蓝方三次任务成功后，可以刺杀梅林，如成功，红方胜利"],
-        ["莫德雷德的爪牙", "无特殊能力红方牌"]
-      ]
-    }
-  ];
-  let counter = 0;
-  return (
-    <div className="rules">
-      {groups.map((group) => (
-        <div key={group.side} className="rules-group">
-          <div className={`rules-label ${group.className}`}>{group.side}</div>
-          {group.items.map(([title, body]) => {
-            counter += 1;
-            return (
-              <div className="rule-row" key={title}>
-                <span className="rule-index">{counter}</span>
-                <div><h4>{title}</h4><p>{body}</p></div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function RulesScreen({ onBack, full = false, rolesOnly = false }: { onBack: () => void; full?: boolean; rolesOnly?: boolean }) {
+export function RulesScreen({ onBack, full = false }: { onBack: () => void; full?: boolean }) {
   return (
     <section className="screen">
       <nav className="app-nav">
@@ -67,7 +23,7 @@ export function RulesScreen({ onBack, full = false, rolesOnly = false }: { onBac
         <div className="brand">规则介绍</div>
         <span style={{ width: 36 }} />
       </nav>
-      {rolesOnly ? <RoleRuleList /> : <RuleList short={!full} />}
+      <RuleList short={!full} />
     </section>
   );
 }

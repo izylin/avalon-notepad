@@ -163,6 +163,7 @@ button { cursor: pointer; }
 .toggle.on { background: var(--green); }
 .toggle.on::after { left: 19px; }
 .warn-text { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 10px; }
+.warn-text.error { color: var(--red); font-weight: 700; }
 
 .mission-table { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); margin-top: 10px; }
 .mission-table-row { display: grid; grid-template-columns: 1fr auto; align-items: center; font-size: 12px; color: var(--muted); }
@@ -195,7 +196,7 @@ button { cursor: pointer; }
 .seat-svg-wrap { margin: 10px 0 0; width: 100%; }
 .player-pick-grid, .vote-grid, .mission-card-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
 .player-pick, .vote-pick { min-height: 46px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; font-weight: 700; font-size: 13px; color: var(--ink); }
-.player-pick.picked { background: #182026; border-color: #0f1519; color: #fff; }
+.player-pick.picked { background: var(--blue); border-color: #1d4f73; color: #fff; }
 .vote-pick.agree { background: var(--blue); border-color: #1d4f73; color: #fff; }
 .vote-pick.reject { background: var(--red); border-color: #7d2f29; color: #fff; }
 .player-pick.is-leader { box-shadow: 0 0 0 2px var(--gold) inset; }
