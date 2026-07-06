@@ -16,6 +16,7 @@ import {
   failsNeeded,
   finalizeMission,
   freshState,
+  isSavedGameState,
   logLaunch,
   missionCardClass,
   missionSizeTable,
@@ -81,7 +82,17 @@ export default function Home() {
       alert("暂无存档，先新开一局吧");
       return;
     }
-    setState(normalizeState(JSON.parse(raw) as GameState));
+    let saved: GameState;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!isSavedGameState(parsed)) throw new Error("invalid save");
+      saved = parsed;
+    } catch {
+      localStorage.removeItem(storageKey);
+      alert("存档数据已损坏，已清除，请新开一局");
+      return;
+    }
+    setState(normalizeState(saved));
     setViewMissionIndex(null);
     goTo("record");
   }

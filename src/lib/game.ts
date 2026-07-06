@@ -115,6 +115,25 @@ export function allAgreeVotes(playerCount: number): Record<number, Vote> {
   return votes;
 }
 
+export function isSavedGameState(value: unknown): value is GameState {
+  if (typeof value !== "object" || value === null) return false;
+  const saved = value as Record<string, unknown>;
+  return (
+    typeof saved.playerCount === "number" &&
+    missionSizeTable[saved.playerCount] !== undefined &&
+    typeof saved.roleToggle === "object" && saved.roleToggle !== null &&
+    Array.isArray(saved.missionSizes) &&
+    typeof saved.currentMission === "number" &&
+    Array.isArray(saved.missionResults) &&
+    typeof saved.leaderIndex === "number" &&
+    typeof saved.rejectStreak === "number" &&
+    Array.isArray(saved.launchLog) &&
+    Array.isArray(saved.pickedTeam) &&
+    typeof saved.notes === "string" &&
+    typeof saved.finished === "boolean"
+  );
+}
+
 export function normalizeState(saved: GameState): GameState {
   const legacyTagEvents = Object.entries(saved.identityTags ?? {}).map(([seat, tag]) => ({
     seat: Number(seat),
