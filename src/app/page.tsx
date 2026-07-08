@@ -180,10 +180,8 @@ export default function Home() {
 
   return (
     <main className="page-wrap">
-      <div>
-        <div className="phone-shell">
-          <div className="phone-notch" />
-          <div className="phone-screen">
+      <div className="app-container">
+        <div className="app-screen">
             {activeScreen === "home" && (
               <section className="screen">
                 <nav className="app-nav">
@@ -379,7 +377,6 @@ export default function Home() {
             )}
 
             {showMenu && <PageMenu onClose={() => setShowMenu(false)} onJump={jumpToDemoScreen} />}
-          </div>
         </div>
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
       </div>
