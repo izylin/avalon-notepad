@@ -18,7 +18,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #c8cfc9;
+  background: var(--paper);
   color: var(--ink);
 }
 
@@ -28,39 +28,30 @@ button { cursor: pointer; }
 .page-wrap {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 0;
 }
 
 .phone-shell {
-  width: 375px;
-  min-height: 812px;
-  border-radius: 48px;
-  background: #111;
-  padding: 14px;
-  box-shadow: 0 32px 80px rgba(0,0,0,.45), inset 0 0 0 1px #333;
+  width: 100%;
+  min-height: 100vh;
 }
 
 .phone-notch {
-  width: 120px;
-  height: 28px;
-  background: #111;
-  border-radius: 0 0 18px 18px;
-  margin: 0 auto;
+  display: none;
 }
 
 .phone-screen {
   position: relative;
-  border-radius: 36px;
   overflow: hidden;
   background: var(--paper);
-  min-height: 770px;
+  min-height: 100vh;
 }
 
 .screen {
   width: 100%;
-  min-height: 770px;
+  min-height: 100vh;
   padding: 20px;
   background: var(--paper);
   animation: fadeIn .18s ease;

@@ -5,7 +5,6 @@ import { IdentityTagsPanel } from "@/components/IdentityTagsPanel";
 import { LaunchHistory } from "@/components/LaunchHistory";
 import { MissionPager } from "@/components/MissionPager";
 import { MissionReview } from "@/components/MissionReview";
-import { PageMenu } from "@/components/PageMenu";
 import { RuleList, RulesScreen } from "@/components/RulesScreen";
 import { SeatSvg } from "@/components/SeatSvg";
 import {
@@ -29,7 +28,6 @@ import {
   togglesFor,
   type GameState,
   type IdentityTag,
-  type MissionResult,
   type RoleKey,
   type Screen
 } from "@/lib/game";
@@ -41,7 +39,6 @@ export default function Home() {
   const [setupLeader, setSetupLeader] = useState(1);
   const [state, setState] = useState<GameState | null>(null);
   const [showSave, setShowSave] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [viewMissionIndex, setViewMissionIndex] = useState<number | null>(null);
 
   const filler = useMemo(() => {
@@ -58,7 +55,6 @@ export default function Home() {
 
   function goTo(next: Screen) {
     setShowSave(false);
-    setShowMenu(false);
     setScreen(next);
   }
 
@@ -147,37 +143,6 @@ export default function Home() {
     goTo("record");
   }
 
-  function demoStateFor(nextScreen: Screen) {
-    const base = state ?? freshState(8, togglesFor(8), 1);
-    if (nextScreen === "assassinate") {
-      return {
-        ...base,
-        currentMission: 2,
-        missionResults: ["good", "good", "good", null, null] as MissionResult[],
-        awaitingAssassination: true
-      };
-    }
-    if (nextScreen !== "result") return base;
-
-    return {
-      ...base,
-      currentMission: 4,
-      missionResults: ["good", "bad", "good", "bad", "good"] as MissionResult[],
-      finished: true,
-      winner: "blue" as const
-    };
-  }
-
-  function jumpToDemoScreen(nextScreen: Screen) {
-    if (["record", "notes", "result", "assassinate"].includes(nextScreen)) {
-      const next = demoStateFor(nextScreen);
-      setState(next);
-      setViewMissionIndex(null);
-      saveToStorage(next);
-    }
-    goTo(nextScreen);
-  }
-
   const currentSize = state ? state.missionSizes[state.currentMission] : 0;
   const leaderSeat = state ? state.leaderIndex + 1 : 1;
   const activeScreen = state?.awaitingAssassination && screen === "record"
@@ -199,7 +164,6 @@ export default function Home() {
               <section className="screen">
                 <nav className="app-nav">
                   <div className="brand"><span className="brand-mark">A</span><span>Avalon Note</span></div>
-                  <button className="icon-btn" aria-label="菜单" onClick={() => setShowMenu(true)}>☰</button>
                 </nav>
                 <div className="hero">
                   <h3>阿瓦隆现场笔记</h3>
@@ -388,8 +352,6 @@ export default function Home() {
                 <button className="primary-btn" style={{ width: "100%" }} onClick={() => goTo("home")}>返回首页</button>
               </section>
             )}
-
-            {showMenu && <PageMenu onClose={() => setShowMenu(false)} onJump={jumpToDemoScreen} />}
           </div>
         </div>
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
