@@ -220,7 +220,7 @@ export default function Home() {
       <div className="app-container">
         <div className="app-screen">
             {activeScreen === "home" && (
-              <section className="screen">
+              <section className="screen screen-auto">
               <div className="home-shell">
                 <nav className="app-nav top-nav">
                   <div className="brand"><span className="brand-mark">A</span><span>Avalon Note</span></div>
