@@ -342,7 +342,7 @@ export default function Home() {
             {activeScreen === "assassinate" && state && (
               <section className="screen">
                 <nav className="app-nav"><span style={{ width: 36 }} /><div className="brand">刺杀环节</div><span style={{ width: 36 }} /></nav>
-                <div className="hero" style={{ background: "linear-gradient(180deg,rgba(13,19,23,.16),rgba(13,19,23,.82)), linear-gradient(135deg,#4a2320,#b8463e 60%,#e0a39d)" }}>
+                <div className="hero hero-red">
                   <h3>蓝方完成三次任务</h3>
                   <p>场上有刺客，请刺客线下指认梅林，然后在此记录刺杀结果。</p>
                 </div>
@@ -362,7 +362,7 @@ export default function Home() {
             {activeScreen === "result" && state && (
               <section className="screen">
                 <nav className="app-nav"><span style={{ width: 36 }} /><div className="brand">本局结算</div><span style={{ width: 36 }} /></nav>
-                <div className="hero" style={{ background: state.winner === "blue" ? "linear-gradient(180deg,rgba(13,19,23,.16),rgba(13,19,23,.82)), linear-gradient(135deg,#23425e,#376f9f 60%,#9fc6e0)" : "linear-gradient(180deg,rgba(13,19,23,.16),rgba(13,19,23,.82)), linear-gradient(135deg,#4a2320,#b8463e 60%,#e0a39d)" }}>
+                <div className={`hero ${state.winner === "blue" ? "hero-blue" : "hero-red"}`}>
                   <h3>{state.winner === "blue" ? "蓝方胜利" : "红方胜利"}</h3>
                   <p>
                     {state.winner === "blue"
