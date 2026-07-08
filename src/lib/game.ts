@@ -134,7 +134,9 @@ export function peekSavedSummary(): SaveSummary | null {
   const raw = localStorage.getItem(storageKey);
   if (!raw) return null;
   try {
-    const saved = normalizeState(JSON.parse(raw) as GameState);
+    const parsed: unknown = JSON.parse(raw);
+    if (!isSavedGameState(parsed)) return null;
+    const saved = normalizeState(parsed);
     return {
       playerCount: saved.playerCount,
       currentMission: saved.currentMission,
@@ -179,6 +181,25 @@ export function allAgreeVotes(playerCount: number): Record<number, Vote> {
   const votes: Record<number, Vote> = {};
   for (let seat = 1; seat <= playerCount; seat++) votes[seat] = "agree";
   return votes;
+}
+
+export function isSavedGameState(value: unknown): value is GameState {
+  if (typeof value !== "object" || value === null) return false;
+  const saved = value as Record<string, unknown>;
+  return (
+    typeof saved.playerCount === "number" &&
+    missionSizeTable[saved.playerCount] !== undefined &&
+    typeof saved.roleToggle === "object" && saved.roleToggle !== null &&
+    Array.isArray(saved.missionSizes) &&
+    typeof saved.currentMission === "number" &&
+    Array.isArray(saved.missionResults) &&
+    typeof saved.leaderIndex === "number" &&
+    typeof saved.rejectStreak === "number" &&
+    Array.isArray(saved.launchLog) &&
+    Array.isArray(saved.pickedTeam) &&
+    typeof saved.notes === "string" &&
+    typeof saved.finished === "boolean"
+  );
 }
 
 export function normalizeState(saved: GameState): GameState {

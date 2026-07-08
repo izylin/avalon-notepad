@@ -47,6 +47,7 @@ export function SeatSvg({
               <circle cx={p.x} cy={p.y} r={r} fill={onTeam ? "#c9a45c" : "#202a3a"} stroke={onTeam ? "#e2c284" : isMe ? "#98a1ad" : "#3a4557"} strokeWidth={isMe || onTeam ? 2.5 : 1.3} />
               {isLeader ? <circle cx={p.x} cy={p.y} r={r + 3.5} fill="none" stroke="#e2c284" strokeWidth="2" /> : null}
               <text fontSize={isMe ? 11 : 13} fontWeight="700" x={p.x} y={p.y + 5} textAnchor="middle" fill={onTeam ? "#251b09" : "#b9c1cb"}>{isMe ? "我" : seat}</text>
+              {isLeader ? <text fontSize="10" fontWeight="700" x={p.x} y={p.y + r + 14} textAnchor="middle" fill="#cf5c53">队长</text> : null}
               {tag ? (
                 <>
                   <circle cx={p.x + r - 1} cy={p.y - r + 1} r="10" fill="#1a2230" stroke="rgba(201,164,92,.4)" strokeWidth="1" />

@@ -17,6 +17,7 @@ import {
   failsNeeded,
   finalizeMission,
   freshState,
+  isSavedGameState,
   loadHistoryStats,
   logLaunch,
   missionCardClass,
@@ -82,11 +83,13 @@ export default function Home() {
     const cfg = defaultConfig[setupCount];
     const redSpecialsOn = roleKeys.filter((key) => roles[key].side === "red" && setupRoles[key]).length;
     const blueSpecialsOn = roleKeys.filter((key) => roles[key].side === "blue" && setupRoles[key]).length;
+    const assassinMissing = !setupRoles.assassin;
     return {
       redSpecialsOn,
       minionCount: cfg.red - redSpecialsOn,
       loyalCount: cfg.blue - blueSpecialsOn,
-      ok: redSpecialsOn <= cfg.red && cfg.blue >= blueSpecialsOn
+      assassinMissing,
+      ok: !assassinMissing && redSpecialsOn <= cfg.red && cfg.blue >= blueSpecialsOn
     };
   }, [setupCount, setupRoles]);
 
@@ -113,7 +116,17 @@ export default function Home() {
   function continueGame() {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return;
-    setState(normalizeState(JSON.parse(raw) as GameState));
+    let saved: GameState;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!isSavedGameState(parsed)) throw new Error("invalid save");
+      saved = parsed;
+    } catch {
+      localStorage.removeItem(storageKey);
+      alert("存档数据已损坏，已清除，请新开一局");
+      return;
+    }
+    setState(normalizeState(saved));
     setViewMissionIndex(null);
     goTo("record");
   }
@@ -321,8 +334,12 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
-                <p className="warn-text">
-                  {filler.ok ? <>自动补齐：<strong>{filler.loyalCount}</strong> 名忠臣（蓝方）、<strong>{filler.minionCount}</strong> 名爪牙（红方），共 {setupCount} 人。</> : `${setupCount}人局红方特殊角色不能超过 ${defaultConfig[setupCount].red} 个。`}
+                <p className={`warn-text ${filler.ok ? "" : "error"}`}>
+                  {filler.ok
+                    ? <>自动补齐：<strong>{filler.loyalCount}</strong> 名忠臣（蓝方）、<strong>{filler.minionCount}</strong> 名爪牙（红方），共 {setupCount} 人。</>
+                    : filler.assassinMissing
+                    ? `红方特殊角色不符合 ${setupCount} 人局要求：刺客为必选角色，请开启刺客。`
+                    : `红方特殊角色不符合 ${setupCount} 人局要求：不能超过 ${defaultConfig[setupCount].red} 个。`}
                 </p>
                 <div className="section-title"><h3>任务人数配置</h3><span className="tag">按官方标准</span></div>
                 <div className="mission-table">
@@ -337,7 +354,7 @@ export default function Home() {
             )}
 
             {activeScreen === "rules" && <RulesScreen onBack={() => goTo("home")} full />}
-            {activeScreen === "rulesInGame" && <RulesScreen onBack={() => goTo("record")} rolesOnly />}
+            {activeScreen === "rulesInGame" && <RulesScreen onBack={() => goTo("record")} full />}
 
             {activeScreen === "record" && state && (
               <section className="screen">
@@ -378,7 +395,7 @@ export default function Home() {
                           })}>{seat === 1 ? "我" : `${seat}号`}</button>
                         ))}
                       </div>
-                      <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
+                      <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: {}, phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
                     </>
                     )}
                     {state.phase === "vote" && (
@@ -389,7 +406,7 @@ export default function Home() {
                       <div className="vote-grid">
                         {Array.from({ length: state.playerCount }, (_, i) => i + 1).map((seat) => <button key={seat} className={`vote-pick ${state.votes[seat] === "agree" ? "agree" : ""} ${state.votes[seat] === "reject" ? "reject" : ""}`} onClick={() => updateState((cur) => {
                           const votes = { ...cur.votes };
-                          votes[seat] = votes[seat] === "reject" ? "agree" : "reject";
+                          votes[seat] = votes[seat] === "agree" ? "reject" : "agree";
                           return { ...cur, votes };
                         })}>{seat === 1 ? "我" : `${seat}号`}</button>)}
                       </div>
