@@ -74,14 +74,17 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
 
 .screen {
   width: 100%;
+  max-width: 620px;
+  margin-inline: auto;
   min-height: 100vh;
   padding: 24px;
   animation: fadeIn .18s ease;
 }
 
 .screen.screen-auto {
+  max-width: 1008px;
   min-height: 0;
-  margin: auto 0;
+  margin: auto;
   padding-bottom: 48px;
 }
 
@@ -347,7 +350,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
 .active-card.mission-good h4 { color: var(--blue); }
 .active-card.mission-bad { border-color: rgba(207, 92, 83, .45); background: linear-gradient(180deg, rgba(207, 92, 83, .1), rgba(207, 92, 83, .03)), var(--panel); }
 .active-card.mission-bad h4 { color: var(--red); }
-.seat-svg-wrap { margin: 10px 0 0; width: 100%; }
+.seat-svg-wrap { margin: 10px auto 0; width: 100%; max-width: 380px; }
 .player-pick-grid, .vote-grid, .mission-card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
 .player-pick, .vote-pick { min-height: 46px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-raised); font-weight: 700; font-size: 13px; color: var(--ink); }
 .player-pick:hover, .vote-pick:hover { border-color: var(--line-gold); }
