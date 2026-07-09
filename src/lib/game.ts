@@ -42,6 +42,24 @@ export type GameState = {
   finished: boolean;
   winner: "blue" | "red" | null;
   awaitingAssassination: boolean;
+  updatedAt?: number;
+};
+
+export type SaveSummary = {
+  playerCount: number;
+  currentMission: number;
+  missionCount: number;
+  finished: boolean;
+  winner: "blue" | "red" | null;
+  updatedAt?: number;
+};
+
+export type HistoryEntry = {
+  id: string;
+  playerCount: number;
+  winner: "blue" | "red";
+  missionResults: MissionResult[];
+  finishedAt: number;
 };
 
 export const missionSizeTable: Record<number, number[]> = {
@@ -72,6 +90,7 @@ export const defaultConfig: Record<number, { red: number; blue: number; specials
 };
 
 export const storageKey = "avalon_note_save_v1";
+export const historyKey = "avalon_note_history_v1";
 export const roleKeys = Object.keys(roles) as RoleKey[];
 export const playerCounts = [5, 6, 7, 8, 9, 10];
 
@@ -105,7 +124,56 @@ export function freshState(playerCount: number, roleToggle = togglesFor(playerCo
     notes: "",
     finished: false,
     winner: null,
-    awaitingAssassination: false
+    awaitingAssassination: false,
+    updatedAt: Date.now()
+  };
+}
+
+export function peekSavedSummary(): SaveSummary | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(storageKey);
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isSavedGameState(parsed)) return null;
+    const saved = normalizeState(parsed);
+    return {
+      playerCount: saved.playerCount,
+      currentMission: saved.currentMission,
+      missionCount: saved.missionSizes.length,
+      finished: saved.finished,
+      winner: saved.winner,
+      updatedAt: saved.updatedAt
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function loadHistory(): HistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(historyKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function appendHistory(entry: HistoryEntry) {
+  const list = [entry, ...loadHistory()].slice(0, 30);
+  localStorage.setItem(historyKey, JSON.stringify(list));
+  return list;
+}
+
+export function loadHistoryStats() {
+  const history = loadHistory();
+  return {
+    total: history.length,
+    blue: history.filter((entry) => entry.winner === "blue").length,
+    red: history.filter((entry) => entry.winner === "red").length,
+    recent: history.slice(0, 3)
   };
 }
 

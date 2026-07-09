@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IdentityTagsPanel } from "@/components/IdentityTagsPanel";
 import { LaunchHistory } from "@/components/LaunchHistory";
 import { MissionPager } from "@/components/MissionPager";
 import { MissionReview } from "@/components/MissionReview";
 import { PageMenu } from "@/components/PageMenu";
-import { RuleList, RulesScreen } from "@/components/RulesScreen";
+import { RulesScreen } from "@/components/RulesScreen";
 import { SeatSvg } from "@/components/SeatSvg";
 import {
   allAgreeVotes,
+  appendHistory,
   completeMissionLaunch,
   defaultConfig,
   effectiveIdentityTags,
@@ -17,10 +18,12 @@ import {
   finalizeMission,
   freshState,
   isSavedGameState,
+  loadHistoryStats,
   logLaunch,
   missionCardClass,
   missionSizeTable,
   normalizeState,
+  peekSavedSummary,
   playerCounts,
   resolveAssassination,
   roleKeys,
@@ -28,11 +31,32 @@ import {
   storageKey,
   togglesFor,
   type GameState,
+  type HistoryEntry,
   type IdentityTag,
   type MissionResult,
   type RoleKey,
+  type SaveSummary,
   type Screen
 } from "@/lib/game";
+
+function formatRelativeTime(ms?: number) {
+  if (!ms) return "本机存档";
+  const minutes = Math.floor((Date.now() - ms) / 60000);
+  if (minutes < 1) return "刚刚保存";
+  if (minutes < 60) return `${minutes} 分钟前保存`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前保存`;
+  return `${Math.floor(hours / 24)} 天前保存`;
+}
+
+function formatShortDate(ms: number) {
+  const d = new Date(ms);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function persistState(nextState: GameState) {
+  localStorage.setItem(storageKey, JSON.stringify({ ...nextState, updatedAt: Date.now() }));
+}
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -43,6 +67,17 @@ export default function Home() {
   const [showSave, setShowSave] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [viewMissionIndex, setViewMissionIndex] = useState<number | null>(null);
+  const [savedSummary, setSavedSummary] = useState<SaveSummary | null>(null);
+  const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
+
+  useEffect(() => {
+    // Deferred to an effect (rather than computed during render) so the first client
+    // render matches the server-rendered markup before reading localStorage.
+    if (screen !== "home") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSavedSummary(peekSavedSummary());
+    setHistoryStats(loadHistoryStats());
+  }, [screen]);
 
   const filler = useMemo(() => {
     const cfg = defaultConfig[setupCount];
@@ -80,10 +115,7 @@ export default function Home() {
 
   function continueGame() {
     const raw = localStorage.getItem(storageKey);
-    if (!raw) {
-      alert("暂无存档，先新开一局吧");
-      return;
-    }
+    if (!raw) return;
     let saved: GameState;
     try {
       const parsed: unknown = JSON.parse(raw);
@@ -99,10 +131,6 @@ export default function Home() {
     goTo("record");
   }
 
-  function saveToStorage(nextState = state) {
-    if (nextState) localStorage.setItem(storageKey, JSON.stringify(nextState));
-  }
-
   function discardSaveAndReturnHome() {
     localStorage.removeItem(storageKey);
     setState(null);
@@ -114,7 +142,16 @@ export default function Home() {
     setState((current) => {
       if (!current) return current;
       const next = updater(current);
-      saveToStorage(next);
+      persistState(next);
+      if (next.finished && !current.finished && next.winner) {
+        appendHistory({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          playerCount: next.playerCount,
+          winner: next.winner,
+          missionResults: next.missionResults,
+          finishedAt: Date.now()
+        });
+      }
       return next;
     });
   }
@@ -145,7 +182,7 @@ export default function Home() {
     const next = freshState(setupCount, setupRoles, setupLeader);
     setState(next);
     setViewMissionIndex(null);
-    saveToStorage(next);
+    persistState(next);
     goTo("record");
   }
 
@@ -175,7 +212,7 @@ export default function Home() {
       const next = demoStateFor(nextScreen);
       setState(next);
       setViewMissionIndex(null);
-      saveToStorage(next);
+      persistState(next);
     }
     goTo(nextScreen);
   }
@@ -193,26 +230,87 @@ export default function Home() {
 
   return (
     <main className="page-wrap">
-      <div>
-        <div className="phone-shell">
-          <div className="phone-notch" />
-          <div className="phone-screen">
+      <div className="app-container">
+        <div className="app-screen">
             {activeScreen === "home" && (
-              <section className="screen">
-                <nav className="app-nav">
+              <section className="screen screen-auto">
+              <div className="home-shell">
+                <nav className="app-nav top-nav">
                   <div className="brand"><span className="brand-mark">A</span><span>Avalon Note</span></div>
-                  <button className="icon-btn" aria-label="菜单" onClick={() => setShowMenu(true)}>☰</button>
+                  <div className="top-nav-links">
+                    <button className="nav-link" onClick={() => goTo("rules")}>规则</button>
+                    <button className="icon-btn" aria-label="菜单" onClick={() => setShowMenu(true)}>☰</button>
+                  </div>
                 </nav>
-                <div className="hero">
-                  <h3>阿瓦隆现场笔记</h3>
-                  <p>记录上车、投票、任务结果，全部数据只保存在本机。</p>
-                  <div className="hero-actions">
-                    <button className="primary-btn" onClick={startNewGame}>新开一局</button>
-                    <button className="ghost-btn" onClick={continueGame}>从存档继续</button>
+
+                <div className="hero home-hero">
+                  <svg className="hero-motif" viewBox="0 0 400 400" aria-hidden="true" focusable="false">
+                    <circle cx="200" cy="200" r="150" fill="none" stroke="currentColor" strokeWidth="1" />
+                    <circle cx="200" cy="200" r="108" fill="none" stroke="currentColor" strokeWidth="1" />
+                    <circle cx="200" cy="200" r="66" fill="none" stroke="currentColor" strokeWidth="1" />
+                    <line x1="200" y1="30" x2="200" y2="370" stroke="currentColor" strokeWidth="1" />
+                    <line x1="30" y1="200" x2="370" y2="200" stroke="currentColor" strokeWidth="1" />
+                    <line x1="72" y1="72" x2="328" y2="328" stroke="currentColor" strokeWidth="1" />
+                    <line x1="328" y1="72" x2="72" y2="328" stroke="currentColor" strokeWidth="1" />
+                  </svg>
+                  <div className="hero-content">
+                    <span className="eyebrow">线下阿瓦隆 · 现场记录</span>
+                    <h1 className="home-title">阿瓦隆笔记本</h1>
+                    <p className="home-subtitle">记录组队、投票与任务结果，全部数据只保存在本机。</p>
+                    <div className="hero-actions">
+                      <button className="primary-btn" onClick={startNewGame}>新开一局</button>
+                    </div>
                   </div>
                 </div>
-                <div className="section-title"><h3>规则介绍</h3><button className="ghost-btn" onClick={() => goTo("rules")}>查看全部</button></div>
-                <RuleList short />
+
+                <div className="home-below-hero">
+                  {savedSummary && (
+                    <button className="recent-card" onClick={continueGame}>
+                      <div className="recent-card-body">
+                        <span className={`tag ${savedSummary.finished ? (savedSummary.winner === "blue" ? "blue" : "bad") : ""}`}>
+                          {savedSummary.finished ? (savedSummary.winner === "blue" ? "蓝方胜利" : "红方胜利") : "进行中"}
+                        </span>
+                        <strong className="recent-card-title">
+                          {savedSummary.playerCount} 人局
+                          {!savedSummary.finished && ` · 任务 ${savedSummary.currentMission + 1}/${savedSummary.missionCount}`}
+                        </strong>
+                        <span className="recent-card-meta">{formatRelativeTime(savedSummary.updatedAt)}</span>
+                      </div>
+                      <span className="recent-card-arrow" aria-hidden="true">→</span>
+                    </button>
+                  )}
+
+                  {historyStats && historyStats.total > 0 && (
+                    <div className="stats-card">
+                      <div className="section-title" style={{ margin: "0 0 12px" }}><h3>本机战绩</h3></div>
+                      <div className="stats-grid">
+                        <div className="stat-tile"><strong>{historyStats.total}</strong><span>总局数</span></div>
+                        <div className="stat-tile stat-blue"><strong>{historyStats.blue}</strong><span>蓝方胜</span></div>
+                        <div className="stat-tile stat-red"><strong>{historyStats.red}</strong><span>红方胜</span></div>
+                      </div>
+                      <div className="history-list">
+                        {historyStats.recent.map((entry) => (
+                          <div className="history-item" key={entry.id}>
+                            <span className={`tag ${entry.winner === "blue" ? "blue" : "bad"}`}>{entry.winner === "blue" ? "蓝方胜" : "红方胜"}</span>
+                            <span className="history-meta">{entry.playerCount} 人局 · {formatShortDate(entry.finishedAt)}</span>
+                            <span className="history-dots">
+                              {entry.missionResults.filter(Boolean).map((r, i) => <i key={i} className={`mini-dot ${r === "good" ? "good" : "bad"}`} />)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rules-summary-card">
+                  <div>
+                    <div className="section-title" style={{ margin: 0 }}><h3>新手须知</h3></div>
+                    <p>蓝方完成三次任务获胜；红方靠破坏任务或事后刺杀梅林翻盘。队长每轮组队、全员表决，多数同意才能出发。</p>
+                  </div>
+                  <button className="ghost-btn" onClick={() => goTo("rules")}>查看完整规则</button>
+                </div>
+              </div>
               </section>
             )}
 
@@ -273,7 +371,7 @@ export default function Home() {
                     <strong>返回前是否保存本局记录？</strong>
                     <p>点击左上角返回时弹出，避免误退丢失当前推理。</p>
                     <div className="confirm-actions">
-                      <button className="primary-btn" onClick={() => { saveToStorage(); goTo("home"); }}>保存并返回</button>
+                      <button className="primary-btn" onClick={() => { if (state) persistState(state); goTo("home"); }}>保存并返回</button>
                       <button className="ghost-btn" onClick={discardSaveAndReturnHome}>不保存</button>
                       <button className="ghost-btn" onClick={() => setShowSave(false)}>继续记录</button>
                     </div>
@@ -361,7 +459,7 @@ export default function Home() {
             {activeScreen === "assassinate" && state && (
               <section className="screen">
                 <nav className="app-nav"><span style={{ width: 36 }} /><div className="brand">刺杀环节</div><span style={{ width: 36 }} /></nav>
-                <div className="hero" style={{ background: "linear-gradient(180deg,rgba(13,19,23,.16),rgba(13,19,23,.82)), linear-gradient(135deg,#4a2320,#b8463e 60%,#e0a39d)" }}>
+                <div className="hero hero-red">
                   <h3>蓝方完成三次任务</h3>
                   <p>场上有刺客，请刺客线下指认梅林，然后在此记录刺杀结果。</p>
                 </div>
@@ -381,7 +479,7 @@ export default function Home() {
             {activeScreen === "result" && state && (
               <section className="screen">
                 <nav className="app-nav"><span style={{ width: 36 }} /><div className="brand">本局结算</div><span style={{ width: 36 }} /></nav>
-                <div className="hero" style={{ background: state.winner === "blue" ? "linear-gradient(180deg,rgba(13,19,23,.16),rgba(13,19,23,.82)), linear-gradient(135deg,#23425e,#376f9f 60%,#9fc6e0)" : "linear-gradient(180deg,rgba(13,19,23,.16),rgba(13,19,23,.82)), linear-gradient(135deg,#4a2320,#b8463e 60%,#e0a39d)" }}>
+                <div className={`hero ${state.winner === "blue" ? "hero-blue" : "hero-red"}`}>
                   <h3>{state.winner === "blue" ? "蓝方胜利" : "红方胜利"}</h3>
                   <p>
                     {state.winner === "blue"
@@ -396,7 +494,6 @@ export default function Home() {
             )}
 
             {showMenu && <PageMenu onClose={() => setShowMenu(false)} onJump={jumpToDemoScreen} />}
-          </div>
         </div>
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
       </div>
