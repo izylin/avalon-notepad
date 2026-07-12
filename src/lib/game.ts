@@ -91,6 +91,7 @@ export const defaultConfig: Record<number, { red: number; blue: number; specials
 
 export const storageKey = "avalon_note_save_v1";
 export const historyKey = "avalon_note_history_v1";
+export const themeStorageKey = "avalon_note_theme_v1";
 export const roleKeys = Object.keys(roles) as RoleKey[];
 export const playerCounts = [5, 6, 7, 8, 9, 10];
 
