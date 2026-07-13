@@ -65,6 +65,7 @@ export default function Home() {
   const [state, setState] = useState<GameState | null>(null);
   const [showSave, setShowSave] = useState(false);
   const [viewMissionIndex, setViewMissionIndex] = useState<number | null>(null);
+  const [selectedIdentityTag, setSelectedIdentityTag] = useState<IdentityTag | null>(null);
   const [savedSummary, setSavedSummary] = useState<SaveSummary | null>(null);
   const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -173,21 +174,35 @@ export default function Home() {
     updateState((cur) => {
       const missionIndex = cur.currentMission;
       const identityTagEvents = [...(cur.identityTagEvents ?? [])];
-      const activeIndex = identityTagEvents.findLastIndex((event) => (
-        event.seat === seat &&
-        event.tag === tag &&
+      const activeAtMission = (event: { startMission: number; endMission?: number }) => (
         event.startMission <= missionIndex &&
         (event.endMission === undefined || missionIndex < event.endMission)
+      );
+      const activeIndex = identityTagEvents.findLastIndex((event) => (
+        event.seat === seat && event.tag === tag && activeAtMission(event)
       ));
 
       if (activeIndex >= 0) {
         identityTagEvents[activeIndex] = { ...identityTagEvents[activeIndex], endMission: missionIndex };
       } else {
+        identityTagEvents.forEach((event, index) => {
+          if (event.seat === seat && activeAtMission(event)) {
+            identityTagEvents[index] = { ...event, endMission: missionIndex };
+          }
+        });
         identityTagEvents.push({ seat, tag, startMission: missionIndex });
       }
 
       return { ...cur, identityTagEvents };
     });
+  }
+
+  function handleSeatWithIdentityFallback(seat: number, fallback: (seat: number) => void) {
+    if (selectedIdentityTag) {
+      toggleIdentityTag(seat, selectedIdentityTag);
+      return;
+    }
+    fallback(seat);
   }
 
   function beginGame() {
@@ -383,7 +398,10 @@ export default function Home() {
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队 · {leaderSeat === 1 ? "我" : `${leaderSeat}号`}队长</h4>
                       <p>需选出 {currentSize} 人组队，当前已选 {state.pickedTeam.length} 人</p>
-                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={toggleTeamSeat} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
+                      <div className="seat-identity-stage">
+                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
+                        <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleTeamSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
+                      </div>
                       <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
                     </>
                     )}
@@ -391,7 +409,10 @@ export default function Home() {
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队表决</h4>
                       <p>队伍：{state.pickedTeam.map((s) => s === 1 ? "我" : `${s}号`).join("、")}，请记录每位玩家的投票</p>
-                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={toggleVoteSeat} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
+                      <div className="seat-identity-stage">
+                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
+                        <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleVoteSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
+                      </div>
                       <div className="step-actions">
                         <button className="ghost-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => ({ ...cur, phase: "team", votes: {} }))}>返回重选</button>
                         <button className="primary-btn" style={{ flex: 1 }} disabled={Object.keys(state.votes).length !== state.playerCount} onClick={() => updateState((cur) => {
@@ -408,7 +429,10 @@ export default function Home() {
                     <>
                       <h4>执行中</h4>
                       <p>上车 {state.pickedTeam.length} 人暗中提交任务牌，请填写本次任务收到的失败票数量。</p>
-                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
+                      <div className="seat-identity-stage">
+                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
+                        <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={selectedIdentityTag ? (seat) => toggleIdentityTag(seat, selectedIdentityTag) : undefined} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
+                      </div>
                       <div className="fail-vote-counter">
                         <button className="counter-btn" disabled={state.missionFailVotes <= 0} onClick={() => updateState((cur) => ({ ...cur, missionFailVotes: Math.max(0, cur.missionFailVotes - 1) }))}>－</button>
                         <div className="counter-display"><div className="counter-main"><strong>{state.missionFailVotes}</strong> 张失败票</div><div className="counter-sub">成功票 {state.pickedTeam.length - state.missionFailVotes} 张 · 共 {state.pickedTeam.length} 人</div></div>
@@ -422,7 +446,6 @@ export default function Home() {
                     )}
                   </div>
                 ) : <MissionReview state={state} missionIndex={displayedMissionIndex} />}
-                {isLiveMissionView ? <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} onToggle={toggleIdentityTag} /> : null}
                 <LaunchHistory state={state} missionIndex={displayedMissionIndex} />
               </section>
             )}

@@ -3,7 +3,7 @@ export type RoleKey = "merlin" | "percival" | "morgana" | "assassin" | "mordred"
 export type Vote = "agree" | "reject";
 export type MissionResult = "good" | "bad" | null;
 export type Phase = "team" | "vote" | "mission";
-export type IdentityTag = "percival";
+export type IdentityTag = RoleKey;
 
 export type IdentityTagEvent = {
   seat: number;
