@@ -5,7 +5,6 @@ import { IdentityTagsPanel } from "@/components/IdentityTagsPanel";
 import { LaunchHistory } from "@/components/LaunchHistory";
 import { MissionPager } from "@/components/MissionPager";
 import { MissionReview } from "@/components/MissionReview";
-import { PageMenu } from "@/components/PageMenu";
 import { RulesScreen } from "@/components/RulesScreen";
 import { SeatSvg } from "@/components/SeatSvg";
 import {
@@ -29,11 +28,11 @@ import {
   roleKeys,
   roles,
   storageKey,
+  themeStorageKey,
   togglesFor,
   type GameState,
   type HistoryEntry,
   type IdentityTag,
-  type MissionResult,
   type RoleKey,
   type SaveSummary,
   type Screen
@@ -65,10 +64,10 @@ export default function Home() {
   const [setupLeader, setSetupLeader] = useState(1);
   const [state, setState] = useState<GameState | null>(null);
   const [showSave, setShowSave] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [viewMissionIndex, setViewMissionIndex] = useState<number | null>(null);
   const [savedSummary, setSavedSummary] = useState<SaveSummary | null>(null);
   const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
     // Deferred to an effect (rather than computed during render) so the first client
@@ -78,6 +77,21 @@ export default function Home() {
     setSavedSummary(peekSavedSummary());
     setHistoryStats(loadHistoryStats());
   }, [screen]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(themeStorageKey);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved === "light" || saved === "dark") setTheme(saved);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((cur) => (cur === "dark" ? "light" : "dark"));
+  }
 
   const filler = useMemo(() => {
     const cfg = defaultConfig[setupCount];
@@ -95,7 +109,6 @@ export default function Home() {
 
   function goTo(next: Screen) {
     setShowSave(false);
-    setShowMenu(false);
     setScreen(next);
   }
 
@@ -186,35 +199,20 @@ export default function Home() {
     goTo("record");
   }
 
-  function demoStateFor(nextScreen: Screen) {
-    const base = state ?? freshState(8, togglesFor(8), 1);
-    if (nextScreen === "assassinate") {
-      return {
-        ...base,
-        currentMission: 2,
-        missionResults: ["good", "good", "good", null, null] as MissionResult[],
-        awaitingAssassination: true
-      };
-    }
-    if (nextScreen !== "result") return base;
-
-    return {
-      ...base,
-      currentMission: 4,
-      missionResults: ["good", "bad", "good", "bad", "good"] as MissionResult[],
-      finished: true,
-      winner: "blue" as const
-    };
+  function toggleTeamSeat(seat: number) {
+    updateState((cur) => {
+      const exists = cur.pickedTeam.includes(seat);
+      if (!exists && cur.pickedTeam.length >= cur.missionSizes[cur.currentMission]) return cur;
+      return { ...cur, pickedTeam: exists ? cur.pickedTeam.filter((s) => s !== seat) : [...cur.pickedTeam, seat].sort((a, b) => a - b) };
+    });
   }
 
-  function jumpToDemoScreen(nextScreen: Screen) {
-    if (["record", "notes", "result", "assassinate"].includes(nextScreen)) {
-      const next = demoStateFor(nextScreen);
-      setState(next);
-      setViewMissionIndex(null);
-      persistState(next);
-    }
-    goTo(nextScreen);
+  function toggleVoteSeat(seat: number) {
+    updateState((cur) => {
+      const votes = { ...cur.votes };
+      votes[seat] = votes[seat] === "agree" ? "reject" : "agree";
+      return { ...cur, votes };
+    });
   }
 
   const currentSize = state ? state.missionSizes[state.currentMission] : 0;
@@ -239,7 +237,7 @@ export default function Home() {
                   <div className="brand"><span className="brand-mark">A</span><span>Avalon Note</span></div>
                   <div className="top-nav-links">
                     <button className="nav-link" onClick={() => goTo("rules")}>规则</button>
-                    <button className="icon-btn" aria-label="菜单" onClick={() => setShowMenu(true)}>☰</button>
+                    <button className="icon-btn" aria-label="切换主题" onClick={toggleTheme}>{theme === "dark" ? "☀️" : "🌙"}</button>
                   </div>
                 </nav>
 
@@ -385,31 +383,15 @@ export default function Home() {
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队 · {leaderSeat === 1 ? "我" : `${leaderSeat}号`}队长</h4>
                       <p>需选出 {currentSize} 人组队，当前已选 {state.pickedTeam.length} 人</p>
-                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
-                      <div className="player-pick-grid">
-                        {Array.from({ length: state.playerCount }, (_, i) => i + 1).map((seat) => (
-                          <button key={seat} className={`player-pick ${state.pickedTeam.includes(seat) ? "picked" : ""} ${seat === leaderSeat ? "is-leader" : ""}`} onClick={() => updateState((cur) => {
-                            const exists = cur.pickedTeam.includes(seat);
-                            if (!exists && cur.pickedTeam.length >= cur.missionSizes[cur.currentMission]) return cur;
-                            return { ...cur, pickedTeam: exists ? cur.pickedTeam.filter((s) => s !== seat) : [...cur.pickedTeam, seat].sort((a, b) => a - b) };
-                          })}>{seat === 1 ? "我" : `${seat}号`}</button>
-                        ))}
-                      </div>
-                      <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: {}, phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
+                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={toggleTeamSeat} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
+                      <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
                     </>
                     )}
                     {state.phase === "vote" && (
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队表决</h4>
                       <p>队伍：{state.pickedTeam.map((s) => s === 1 ? "我" : `${s}号`).join("、")}，请记录每位玩家的投票</p>
-                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
-                      <div className="vote-grid">
-                        {Array.from({ length: state.playerCount }, (_, i) => i + 1).map((seat) => <button key={seat} className={`vote-pick ${state.votes[seat] === "agree" ? "agree" : ""} ${state.votes[seat] === "reject" ? "reject" : ""}`} onClick={() => updateState((cur) => {
-                          const votes = { ...cur.votes };
-                          votes[seat] = votes[seat] === "agree" ? "reject" : "agree";
-                          return { ...cur, votes };
-                        })}>{seat === 1 ? "我" : `${seat}号`}</button>)}
-                      </div>
+                      <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={toggleVoteSeat} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
                       <div className="step-actions">
                         <button className="ghost-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => ({ ...cur, phase: "team", votes: {} }))}>返回重选</button>
                         <button className="primary-btn" style={{ flex: 1 }} disabled={Object.keys(state.votes).length !== state.playerCount} onClick={() => updateState((cur) => {
@@ -463,6 +445,9 @@ export default function Home() {
                   <h3>蓝方完成三次任务</h3>
                   <p>场上有刺客，请刺客线下指认梅林，然后在此记录刺杀结果。</p>
                 </div>
+                <div className="section-title"><h3>任务回顾</h3></div>
+                <MissionPager state={state} selectedMissionIndex={displayedMissionIndex} onSelect={setViewMissionIndex} />
+                <MissionReview state={state} missionIndex={displayedMissionIndex} />
                 <div className="step-actions">
                   <button className="primary-btn assassin-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => resolveAssassination(cur, true))}>
                     <span>刺杀成功</span>
@@ -492,8 +477,6 @@ export default function Home() {
                 <button className="primary-btn" style={{ width: "100%" }} onClick={() => goTo("home")}>返回首页</button>
               </section>
             )}
-
-            {showMenu && <PageMenu onClose={() => setShowMenu(false)} onJump={jumpToDemoScreen} />}
         </div>
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
       </div>
