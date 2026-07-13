@@ -94,6 +94,71 @@ export const historyKey = "avalon_note_history_v1";
 export const themeStorageKey = "avalon_note_theme_v1";
 export const roleKeys = Object.keys(roles) as RoleKey[];
 export const playerCounts = [5, 6, 7, 8, 9, 10];
+const maxSavedCharacters = 256 * 1024;
+const maxNotesLength = 10_000;
+const maxLaunchLogs = 25;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isIntegerBetween(value: unknown, min: number, max: number): value is number {
+  return Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
+}
+
+function isMissionResult(value: unknown): value is MissionResult {
+  return value === null || value === "good" || value === "bad";
+}
+
+function isSeat(value: unknown, playerCount: number): value is number {
+  return isIntegerBetween(value, 1, playerCount);
+}
+
+function isSeatList(value: unknown, playerCount: number): value is number[] {
+  return Array.isArray(value) &&
+    value.length <= playerCount &&
+    new Set(value).size === value.length &&
+    value.every((seat) => isSeat(seat, playerCount));
+}
+
+function isVotes(value: unknown, playerCount: number): value is Record<number, Vote> {
+  if (!isRecord(value) || Object.keys(value).length > playerCount) return false;
+  return Object.entries(value).every(([seat, vote]) => (
+    isSeat(Number(seat), playerCount) && (vote === "agree" || vote === "reject")
+  ));
+}
+
+function isLaunchLog(value: unknown, playerCount: number): value is LaunchLog {
+  if (!isRecord(value)) return false;
+  return isIntegerBetween(value.missionNo, 1, 5) &&
+    isIntegerBetween(value.round, 1, 5) &&
+    isSeat(value.leaderSeat, playerCount) &&
+    isSeatList(value.team, playerCount) &&
+    isVotes(value.votes, playerCount) &&
+    typeof value.passed === "boolean" &&
+    isMissionResult(value.missionResult) &&
+    isIntegerBetween(value.fails, 0, playerCount);
+}
+
+function isIdentityTagEvent(value: unknown, playerCount: number): value is IdentityTagEvent {
+  if (!isRecord(value)) return false;
+  return isSeat(value.seat, playerCount) &&
+    value.tag === "percival" &&
+    isIntegerBetween(value.startMission, 0, 4) &&
+    (value.endMission === undefined || isIntegerBetween(value.endMission, 0, 5));
+}
+
+function isHistoryEntry(value: unknown): value is HistoryEntry {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string" &&
+    value.id.length > 0 && value.id.length <= 100 &&
+    isIntegerBetween(value.playerCount, 5, 10) &&
+    (value.winner === "blue" || value.winner === "red") &&
+    Array.isArray(value.missionResults) &&
+    value.missionResults.length === 5 &&
+    value.missionResults.every(isMissionResult) &&
+    typeof value.finishedAt === "number" && Number.isFinite(value.finishedAt);
+}
 
 export function failsNeeded(playerCount: number, missionIndex: number) {
   return playerCount >= 8 && missionIndex === 3 ? 2 : 1;
@@ -133,7 +198,7 @@ export function freshState(playerCount: number, roleToggle = togglesFor(playerCo
 export function peekSavedSummary(): SaveSummary | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(storageKey);
-  if (!raw) return null;
+  if (!raw || raw.length > maxSavedCharacters) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isSavedGameState(parsed)) return null;
@@ -155,9 +220,15 @@ export function loadHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(historyKey);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!raw) return [];
+    if (raw.length > maxSavedCharacters) throw new Error("history is too large");
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length > 30 || !parsed.every(isHistoryEntry)) {
+      throw new Error("invalid history");
+    }
+    return parsed;
   } catch {
+    localStorage.removeItem(historyKey);
     return [];
   }
 }
@@ -185,22 +256,47 @@ export function allAgreeVotes(playerCount: number): Record<number, Vote> {
 }
 
 export function isSavedGameState(value: unknown): value is GameState {
-  if (typeof value !== "object" || value === null) return false;
-  const saved = value as Record<string, unknown>;
-  return (
-    typeof saved.playerCount === "number" &&
-    missionSizeTable[saved.playerCount] !== undefined &&
-    typeof saved.roleToggle === "object" && saved.roleToggle !== null &&
-    Array.isArray(saved.missionSizes) &&
-    typeof saved.currentMission === "number" &&
-    Array.isArray(saved.missionResults) &&
-    typeof saved.leaderIndex === "number" &&
-    typeof saved.rejectStreak === "number" &&
-    Array.isArray(saved.launchLog) &&
-    Array.isArray(saved.pickedTeam) &&
-    typeof saved.notes === "string" &&
-    typeof saved.finished === "boolean"
+  if (!isRecord(value) || !isIntegerBetween(value.playerCount, 5, 10)) return false;
+  const playerCount = value.playerCount;
+  const expectedMissionSizes = missionSizeTable[playerCount];
+  const roleToggle = value.roleToggle;
+  const validRoleToggle = isRecord(roleToggle) && roleKeys.every((key) => typeof roleToggle[key] === "boolean");
+  const validIdentityEvents = value.identityTagEvents === undefined || (
+    Array.isArray(value.identityTagEvents) &&
+    value.identityTagEvents.length <= 50 &&
+    value.identityTagEvents.every((event) => isIdentityTagEvent(event, playerCount))
   );
+  const validLegacyIdentityTags = value.identityTags === undefined || (
+    isRecord(value.identityTags) &&
+    Object.entries(value.identityTags).every(([seat, tag]) => (
+      isSeat(Number(seat), playerCount) && tag === "percival"
+    ))
+  );
+
+  return validRoleToggle &&
+    Array.isArray(value.missionSizes) &&
+    value.missionSizes.length === 5 &&
+    value.missionSizes.every((size, index) => size === expectedMissionSizes[index]) &&
+    isIntegerBetween(value.currentMission, 0, 4) &&
+    Array.isArray(value.missionResults) &&
+    value.missionResults.length === 5 &&
+    value.missionResults.every(isMissionResult) &&
+    isIntegerBetween(value.leaderIndex, 0, playerCount - 1) &&
+    isIntegerBetween(value.rejectStreak, 0, 5) &&
+    Array.isArray(value.launchLog) &&
+    value.launchLog.length <= maxLaunchLogs &&
+    value.launchLog.every((log) => isLaunchLog(log, playerCount)) &&
+    (value.phase === "team" || value.phase === "vote" || value.phase === "mission") &&
+    isSeatList(value.pickedTeam, playerCount) &&
+    isVotes(value.votes, playerCount) &&
+    isIntegerBetween(value.missionFailVotes, 0, playerCount) &&
+    validLegacyIdentityTags &&
+    validIdentityEvents &&
+    typeof value.notes === "string" && value.notes.length <= maxNotesLength &&
+    typeof value.finished === "boolean" &&
+    (value.winner === null || value.winner === "blue" || value.winner === "red") &&
+    (value.awaitingAssassination === undefined || typeof value.awaitingAssassination === "boolean") &&
+    (value.updatedAt === undefined || (typeof value.updatedAt === "number" && Number.isFinite(value.updatedAt)));
 }
 
 export function normalizeState(saved: GameState): GameState {
