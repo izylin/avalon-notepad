@@ -1,5 +1,9 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { seatCanvas, type IdentityTag, type SeatLayout, type SeatPoint, type Vote } from "@/lib/game";
+
+const longPressMs = 400;
+// 长按判定期内允许的手指抖动；超过即视为滑动页面。
+const longPressSlopPx = 8;
 
 const roleVisuals: Record<IdentityTag, { ink: string; glow: string; accent: string; ringOpacity: number; patternScale?: number }> = {
   merlin: { ink: "#2f6ea6", glow: "#d8ebfb", accent: "#78b7e6", ringOpacity: .58 },
@@ -78,6 +82,13 @@ function seatRadius(seat: number) {
   return seat === 1 ? 26 : 24;
 }
 
+function toSvgPoint(svg: SVGSVGElement | null, source: { clientX: number; clientY: number }): SeatPoint | null {
+  const ctm = svg?.getScreenCTM();
+  if (!ctm) return null;
+  const point = new DOMPoint(source.clientX, source.clientY).matrixTransform(ctm.inverse());
+  return { x: point.x, y: point.y };
+}
+
 // 座位连同外圈身份光环整体留在画布内，否则拖到边缘会被 viewBox 裁掉。
 function clampToCanvas(point: SeatPoint, seat: number): SeatPoint {
   const margin = seatRadius(seat) + 11;
@@ -114,16 +125,117 @@ export function SeatSvg({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<{ seat: number; point: SeatPoint } | null>(null);
+  const dragRef = useRef<{ seat: number; point: SeatPoint } | null>(null);
+  const pending = useRef<{ timer: number; x: number; y: number; unlisten: () => void } | null>(null);
+  const draggedRef = useRef(false);
+  const dragCleanup = useRef<(() => void) | null>(null);
+  const onSeatMoveRef = useRef(onSeatMove);
   const pos = { ...seatPositions(n), ...seatLayout };
   if (drag) pos[drag.seat] = drag.point;
   const hasCustomLayout = Object.keys(seatLayout ?? {}).length > 0;
   const svgId = useId().replace(/\W/g, "");
+  const movable = Boolean(onSeatMove);
 
-  function toSvgPoint(event: React.PointerEvent): SeatPoint | null {
-    const ctm = svgRef.current?.getScreenCTM();
-    if (!ctm) return null;
-    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse());
-    return { x: point.x, y: point.y };
+  useEffect(() => {
+    onSeatMoveRef.current = onSeatMove;
+  });
+
+  // 卸载时清掉待定的长按计时器和进行中的拖动，两者都持有 window 监听。
+  useEffect(() => () => {
+    if (pending.current) {
+      clearTimeout(pending.current.timer);
+      pending.current.unlisten();
+      pending.current = null;
+    }
+    dragCleanup.current?.();
+    dragCleanup.current = null;
+  }, []);
+
+  function cancelPending() {
+    if (!pending.current) return;
+    clearTimeout(pending.current.timer);
+    pending.current.unlisten();
+    pending.current = null;
+  }
+
+  // 监听在拖动开始的同一个同步调用里挂上：若改用 effect 订阅，
+  // startDrag 到订阅生效之间存在空窗，落在其中的 pointermove 会丢失。
+  function startDrag(seat: number, source: { clientX: number; clientY: number }) {
+    const point = toSvgPoint(svgRef.current, source);
+    if (!point) return;
+    const first = { seat, point: clampToCanvas(point, seat) };
+    dragRef.current = first;
+    setDrag(first);
+
+    function onMove(event: PointerEvent) {
+      const moved = toSvgPoint(svgRef.current, event);
+      if (!moved) return;
+      const next = { seat, point: clampToCanvas(moved, seat) };
+      dragRef.current = next;
+      setDrag(next);
+    }
+    function onEnd() {
+      const committed = dragRef.current;
+      dragCleanup.current?.();
+      dragCleanup.current = null;
+      dragRef.current = null;
+      setDrag(null);
+      if (committed) onSeatMoveRef.current?.(committed.seat, committed.point);
+    }
+
+    dragCleanup.current?.();
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    dragCleanup.current = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+  }
+
+  function handlePointerDown(seat: number, event: React.PointerEvent) {
+    if (!movable) return;
+    if (editing) {
+      event.preventDefault();
+      startDrag(seat, event);
+      return;
+    }
+    // 非编辑模式：长按才进入拖动，短按仍然是选人/投票。
+    const { clientX, clientY } = event;
+    cancelPending();
+
+    // 待定阶段同样监听 window：手指按下后滑出座位再松开时，
+    // 座位自身收不到 pointerup，计时器会照常触发出一个幽灵拖拽。
+    function onPendingMove(moveEvent: PointerEvent) {
+      const wait = pending.current;
+      if (wait && Math.hypot(moveEvent.clientX - wait.x, moveEvent.clientY - wait.y) > longPressSlopPx) {
+        cancelPending();
+      }
+    }
+    function onPendingEnd() {
+      cancelPending();
+    }
+    function unlisten() {
+      window.removeEventListener("pointermove", onPendingMove);
+      window.removeEventListener("pointerup", onPendingEnd);
+      window.removeEventListener("pointercancel", onPendingEnd);
+    }
+    window.addEventListener("pointermove", onPendingMove);
+    window.addEventListener("pointerup", onPendingEnd);
+    window.addEventListener("pointercancel", onPendingEnd);
+
+    pending.current = {
+      x: clientX,
+      y: clientY,
+      unlisten,
+      timer: window.setTimeout(() => {
+        unlisten();
+        pending.current = null;
+        draggedRef.current = true;
+        startDrag(seat, { clientX, clientY });
+      }, longPressMs)
+    };
   }
 
   return (
@@ -182,32 +294,25 @@ export function SeatSvg({
           return (
             <g
               key={seat}
+              className={movable ? "seat-node" : undefined}
               role={clickable ? "button" : undefined}
               tabIndex={clickable ? 0 : undefined}
               style={editing ? { cursor: drag?.seat === seat ? "grabbing" : "grab" } : clickable ? { cursor: "pointer" } : undefined}
-              onClick={clickable ? () => onSeatClick?.(seat) : undefined}
+              onClick={clickable ? () => {
+                // 长按拖动结束后浏览器仍会补一次 click，这里吞掉它。
+                if (draggedRef.current) {
+                  draggedRef.current = false;
+                  return;
+                }
+                onSeatClick?.(seat);
+              } : undefined}
               onKeyDown={clickable ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   onSeatClick?.(seat);
                 }
               } : undefined}
-              onPointerDown={editing ? (event) => {
-                event.preventDefault();
-                event.currentTarget.setPointerCapture(event.pointerId);
-                const point = toSvgPoint(event);
-                if (point) setDrag({ seat, point: clampToCanvas(point, seat) });
-              } : undefined}
-              onPointerMove={editing && drag?.seat === seat ? (event) => {
-                const point = toSvgPoint(event);
-                if (point) setDrag({ seat, point: clampToCanvas(point, seat) });
-              } : undefined}
-              onPointerUp={editing && drag?.seat === seat ? (event) => {
-                event.currentTarget.releasePointerCapture(event.pointerId);
-                onSeatMove?.(seat, drag.point);
-                setDrag(null);
-              } : undefined}
-              onPointerCancel={editing && drag?.seat === seat ? () => setDrag(null) : undefined}
+              onPointerDown={movable ? (event) => handlePointerDown(seat, event) : undefined}
             >
               {tag ? (
                 <>

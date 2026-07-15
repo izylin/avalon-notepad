@@ -424,12 +424,10 @@ export default function Home() {
                       >
                         {editingSeats ? "完成编辑" : "编辑座位图"}
                       </button>
-                      {editingSeats && (
-                        <>
-                          <span className="seat-layout-hint">拖动座位以贴合现场牌桌，编辑期间不会改动上车与投票记录。</span>
-                          {state.seatLayout && <button className="ghost-btn seat-layout-btn" onClick={resetSeatLayout}>恢复默认排布</button>}
-                        </>
-                      )}
+                      <span className="seat-layout-hint">
+                        {editingSeats ? "拖动座位以贴合现场牌桌，编辑期间不会改动上车与投票记录。" : "长按座位可直接拖动调整位置。"}
+                      </span>
+                      {state.seatLayout && <button className="ghost-btn seat-layout-btn" onClick={resetSeatLayout}>恢复默认排布</button>}
                     </div>
                     {state.phase === "team" && (
                     <>
