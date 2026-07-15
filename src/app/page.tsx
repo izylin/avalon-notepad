@@ -54,7 +54,14 @@ function formatShortDate(ms: number) {
 }
 
 function persistState(nextState: GameState) {
-  localStorage.setItem(storageKey, JSON.stringify({ ...nextState, updatedAt: Date.now() }));
+  try {
+    const serialized = JSON.stringify({ ...nextState, updatedAt: Date.now() });
+    if (serialized.length > 256 * 1024) return false;
+    localStorage.setItem(storageKey, serialized);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export default function Home() {
@@ -156,7 +163,9 @@ export default function Home() {
     setState((current) => {
       if (!current) return current;
       const next = updater(current);
-      persistState(next);
+      if (!persistState(next)) {
+        alert("保存失败：记录过大或浏览器存储空间不足");
+      }
       if (next.finished && !current.finished && next.winner) {
         appendHistory({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
