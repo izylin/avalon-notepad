@@ -12,6 +12,9 @@ export type IdentityTagEvent = {
   endMission?: number;
 };
 
+export type SeatPoint = { x: number; y: number };
+export type SeatLayout = Record<number, SeatPoint>;
+
 export type LaunchLog = {
   missionNo: number;
   round: number;
@@ -38,6 +41,7 @@ export type GameState = {
   missionFailVotes: number;
   identityTags?: Record<number, IdentityTag>;
   identityTagEvents: IdentityTagEvent[];
+  seatLayout?: SeatLayout;
   notes: string;
   finished: boolean;
   winner: "blue" | "red" | null;
@@ -94,6 +98,7 @@ export const historyKey = "avalon_note_history_v1";
 export const themeStorageKey = "avalon_note_theme_v1";
 export const roleKeys = Object.keys(roles) as RoleKey[];
 export const playerCounts = [5, 6, 7, 8, 9, 10];
+export const seatCanvas = { width: 344, height: 320 };
 const maxSavedCharacters = 256 * 1024;
 const maxNotesLength = 10_000;
 const maxLaunchLogs = 25;
@@ -150,6 +155,20 @@ function isIdentityTagEvent(value: unknown, playerCount: number): value is Ident
     isIdentityTag(value.tag) &&
     isIntegerBetween(value.startMission, 0, 4) &&
     (value.endMission === undefined || isIntegerBetween(value.endMission, 0, 5));
+}
+
+function isSeatPoint(value: unknown): value is SeatPoint {
+  if (!isRecord(value)) return false;
+  const { x, y } = value;
+  return typeof x === "number" && Number.isFinite(x) && x >= 0 && x <= seatCanvas.width &&
+    typeof y === "number" && Number.isFinite(y) && y >= 0 && y <= seatCanvas.height;
+}
+
+function isSeatLayout(value: unknown, playerCount: number): value is SeatLayout {
+  if (!isRecord(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length <= playerCount &&
+    entries.every(([seat, point]) => isSeat(Number(seat), playerCount) && isSeatPoint(point));
 }
 
 function isHistoryEntry(value: unknown): value is HistoryEntry {
@@ -276,6 +295,7 @@ export function isSavedGameState(value: unknown): value is GameState {
       isSeat(Number(seat), playerCount) && isIdentityTag(tag)
     ))
   );
+  const validSeatLayout = value.seatLayout === undefined || isSeatLayout(value.seatLayout, playerCount);
 
   return validRoleToggle &&
     Array.isArray(value.missionSizes) &&
@@ -296,6 +316,7 @@ export function isSavedGameState(value: unknown): value is GameState {
     isIntegerBetween(value.missionFailVotes, 0, playerCount) &&
     validLegacyIdentityTags &&
     validIdentityEvents &&
+    validSeatLayout &&
     typeof value.notes === "string" && value.notes.length <= maxNotesLength &&
     typeof value.finished === "boolean" &&
     (value.winner === null || value.winner === "blue" || value.winner === "red") &&

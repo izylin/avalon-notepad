@@ -1,5 +1,5 @@
-import { useId } from "react";
-import type { IdentityTag, Vote } from "@/lib/game";
+import { useId, useRef, useState } from "react";
+import { seatCanvas, type IdentityTag, type SeatLayout, type SeatPoint, type Vote } from "@/lib/game";
 
 const roleVisuals: Record<IdentityTag, { ink: string; glow: string; accent: string; ringOpacity: number; patternScale?: number }> = {
   merlin: { ink: "#2f6ea6", glow: "#d8ebfb", accent: "#78b7e6", ringOpacity: .58 },
@@ -74,6 +74,19 @@ function seatPositions(n: number, cx = 172, cy = 150, rx = 98, ry = 76) {
   return positions;
 }
 
+function seatRadius(seat: number) {
+  return seat === 1 ? 26 : 24;
+}
+
+// 座位连同外圈身份光环整体留在画布内，否则拖到边缘会被 viewBox 裁掉。
+function clampToCanvas(point: SeatPoint, seat: number): SeatPoint {
+  const margin = seatRadius(seat) + 11;
+  return {
+    x: Math.min(Math.max(point.x, margin), seatCanvas.width - margin),
+    y: Math.min(Math.max(point.y, margin), seatCanvas.height - margin)
+  };
+}
+
 export function SeatSvg({
   n,
   leaderSeat,
@@ -82,7 +95,10 @@ export function SeatSvg({
   identityTags = {},
   onSeatClick,
   captionTop,
-  captionBottom
+  captionBottom,
+  seatLayout,
+  editing = false,
+  onSeatMove
 }: {
   n: number;
   leaderSeat: number;
@@ -92,12 +108,33 @@ export function SeatSvg({
   onSeatClick?: (seat: number) => void;
   captionTop: string;
   captionBottom: string;
+  seatLayout?: SeatLayout;
+  editing?: boolean;
+  onSeatMove?: (seat: number, point: SeatPoint) => void;
 }) {
-  const pos = seatPositions(n);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [drag, setDrag] = useState<{ seat: number; point: SeatPoint } | null>(null);
+  const pos = { ...seatPositions(n), ...seatLayout };
+  if (drag) pos[drag.seat] = drag.point;
+  const hasCustomLayout = Object.keys(seatLayout ?? {}).length > 0;
   const svgId = useId().replace(/\W/g, "");
+
+  function toSvgPoint(event: React.PointerEvent): SeatPoint | null {
+    const ctm = svgRef.current?.getScreenCTM();
+    if (!ctm) return null;
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse());
+    return { x: point.x, y: point.y };
+  }
+
   return (
     <div className="seat-svg-wrap">
-      <svg width="100%" viewBox="0 0 344 320" style={{ display: "block", width: "100%" }}>
+      <svg
+        ref={svgRef}
+        width="100%"
+        viewBox={`0 0 ${seatCanvas.width} ${seatCanvas.height}`}
+        className={editing ? "seat-svg seat-svg-editing" : "seat-svg"}
+        style={{ display: "block", width: "100%" }}
+      >
         <defs>
           {(Object.keys(roleVisuals) as IdentityTag[]).map((tag) => {
             const visual = roleVisuals[tag];
@@ -112,17 +149,20 @@ export function SeatSvg({
           })}
           {Array.from({ length: n }, (_, i) => i + 1).map((seat) => {
             const p = pos[seat];
-            const r = seat === 1 ? 26 : 24;
+            const r = seatRadius(seat);
             return (
               <mask key={seat} id={`${svgId}-role-ring-${seat}`}>
-                <rect width="344" height="320" fill="black" />
+                <rect width={seatCanvas.width} height={seatCanvas.height} fill="black" />
                 <circle cx={p.x} cy={p.y} r={r + 11} fill="white" />
                 <circle cx={p.x} cy={p.y} r={r + 2} fill="black" />
               </mask>
             );
           })}
         </defs>
-        <ellipse cx="172" cy="150" rx="98" ry="76" fill="none" stroke="var(--line-gold)" strokeWidth="1.8" />
+        {/* 默认圆桌轮廓正好穿过默认座位；自定义排布后它不再贴合，反而误导。 */}
+        {hasCustomLayout ? null : (
+          <ellipse cx="172" cy="150" rx="98" ry="76" fill="none" stroke="var(--line-gold)" strokeWidth="1.8" />
+        )}
         <ellipse cx="172" cy="150" rx="50" ry="38" fill="var(--panel)" stroke="var(--line-gold)" strokeWidth="1.2" />
         <text fontSize="11" x="172" y="146" textAnchor="middle" fill="var(--muted)">{captionTop}</text>
         <text fontSize="11" x="172" y="159" textAnchor="middle" fill="var(--muted)">{captionBottom}</text>
@@ -133,8 +173,9 @@ export function SeatSvg({
           const isLeader = seat === leaderSeat;
           const tag = identityTags[seat];
           const vote = voteMap[seat];
-          const clickable = Boolean(onSeatClick);
-          const r = isMe ? 26 : 24;
+          // 编辑座位图时不接受点击，否则拖动会顺带改掉上车名单或投票。
+          const clickable = Boolean(onSeatClick) && !editing;
+          const r = seatRadius(seat);
           const fill = vote === "agree" ? "var(--blue)" : vote === "reject" ? "var(--red)" : onTeam ? "var(--gold)" : "var(--panel-raised)";
           const stroke = vote ? "var(--gold-bright)" : onTeam ? "var(--gold-bright)" : isMe ? "var(--muted)" : "var(--line)";
           const textFill = vote || onTeam ? "var(--gold-ink)" : "var(--muted)";
@@ -143,7 +184,7 @@ export function SeatSvg({
               key={seat}
               role={clickable ? "button" : undefined}
               tabIndex={clickable ? 0 : undefined}
-              style={clickable ? { cursor: "pointer" } : undefined}
+              style={editing ? { cursor: drag?.seat === seat ? "grabbing" : "grab" } : clickable ? { cursor: "pointer" } : undefined}
               onClick={clickable ? () => onSeatClick?.(seat) : undefined}
               onKeyDown={clickable ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -151,6 +192,22 @@ export function SeatSvg({
                   onSeatClick?.(seat);
                 }
               } : undefined}
+              onPointerDown={editing ? (event) => {
+                event.preventDefault();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                const point = toSvgPoint(event);
+                if (point) setDrag({ seat, point: clampToCanvas(point, seat) });
+              } : undefined}
+              onPointerMove={editing && drag?.seat === seat ? (event) => {
+                const point = toSvgPoint(event);
+                if (point) setDrag({ seat, point: clampToCanvas(point, seat) });
+              } : undefined}
+              onPointerUp={editing && drag?.seat === seat ? (event) => {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+                onSeatMove?.(seat, drag.point);
+                setDrag(null);
+              } : undefined}
+              onPointerCancel={editing && drag?.seat === seat ? () => setDrag(null) : undefined}
             >
               {tag ? (
                 <>

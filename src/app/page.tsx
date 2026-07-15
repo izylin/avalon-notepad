@@ -35,7 +35,8 @@ import {
   type IdentityTag,
   type RoleKey,
   type SaveSummary,
-  type Screen
+  type Screen,
+  type SeatPoint
 } from "@/lib/game";
 
 function formatRelativeTime(ms?: number) {
@@ -73,6 +74,7 @@ export default function Home() {
   const [showSave, setShowSave] = useState(false);
   const [viewMissionIndex, setViewMissionIndex] = useState<number | null>(null);
   const [selectedIdentityTag, setSelectedIdentityTag] = useState<IdentityTag | null>(null);
+  const [editingSeats, setEditingSeats] = useState(false);
   const [savedSummary, setSavedSummary] = useState<SaveSummary | null>(null);
   const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -203,6 +205,18 @@ export default function Home() {
       }
 
       return { ...cur, identityTagEvents };
+    });
+  }
+
+  function moveSeat(seat: number, point: SeatPoint) {
+    updateState((cur) => ({ ...cur, seatLayout: { ...cur.seatLayout, [seat]: point } }));
+  }
+
+  function resetSeatLayout() {
+    updateState((cur) => {
+      const next = { ...cur };
+      delete next.seatLayout;
+      return next;
     });
   }
 
@@ -403,13 +417,27 @@ export default function Home() {
                 {isLiveMissionView ? (
                   <div className={missionCardClass(state.missionResults[state.currentMission])}>
                     {state.rejectStreak > 0 && <div className="reset-banner">已连续 {state.rejectStreak} 次组队被否决{state.rejectStreak >= 4 ? "，本次为强制轮，将直接出发不再表决" : ""}</div>}
+                    <div className="seat-layout-bar">
+                      <button
+                        className={editingSeats ? "primary-btn seat-layout-btn" : "ghost-btn seat-layout-btn"}
+                        onClick={() => { setEditingSeats((on) => !on); setSelectedIdentityTag(null); }}
+                      >
+                        {editingSeats ? "完成编辑" : "编辑座位图"}
+                      </button>
+                      {editingSeats && (
+                        <>
+                          <span className="seat-layout-hint">拖动座位以贴合现场牌桌，编辑期间不会改动上车与投票记录。</span>
+                          {state.seatLayout && <button className="ghost-btn seat-layout-btn" onClick={resetSeatLayout}>恢复默认排布</button>}
+                        </>
+                      )}
+                    </div>
                     {state.phase === "team" && (
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队 · {leaderSeat === 1 ? "我" : `${leaderSeat}号`}队长</h4>
                       <p>需选出 {currentSize} 人组队，当前已选 {state.pickedTeam.length} 人</p>
                       <div className="seat-identity-stage">
                         <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleTeamSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
+                        <SeatSvg seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleTeamSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
                       </div>
                       <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
                     </>
@@ -420,7 +448,7 @@ export default function Home() {
                       <p>队伍：{state.pickedTeam.map((s) => s === 1 ? "我" : `${s}号`).join("、")}，请记录每位玩家的投票</p>
                       <div className="seat-identity-stage">
                         <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleVoteSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
+                        <SeatSvg seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleVoteSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
                       </div>
                       <div className="step-actions">
                         <button className="ghost-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => ({ ...cur, phase: "team", votes: {} }))}>返回重选</button>
@@ -440,7 +468,7 @@ export default function Home() {
                       <p>上车 {state.pickedTeam.length} 人暗中提交任务牌，请填写本次任务收到的失败票数量。</p>
                       <div className="seat-identity-stage">
                         <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={selectedIdentityTag ? (seat) => toggleIdentityTag(seat, selectedIdentityTag) : undefined} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
+                        <SeatSvg seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={selectedIdentityTag ? (seat) => toggleIdentityTag(seat, selectedIdentityTag) : undefined} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
                       </div>
                       <div className="fail-vote-counter">
                         <button className="counter-btn" disabled={state.missionFailVotes <= 0} onClick={() => updateState((cur) => ({ ...cur, missionFailVotes: Math.max(0, cur.missionFailVotes - 1) }))}>－</button>
