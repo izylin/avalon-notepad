@@ -381,6 +381,13 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   margin: 8px 0 12px;
 }
 .seat-svg-wrap { margin: 0 auto; width: 100%; max-width: 460px; min-width: 0; }
+/* touch-action 在手势开始时即被浏览器锁定，长按 400ms 后再改已经来不及，
+   因此座位始终禁掉平移手势；画布其余部分仍可正常滑动翻页。 */
+.seat-node { touch-action: none; }
+.seat-svg-editing { touch-action: none; }
+.seat-layout-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.seat-layout-btn { padding: 6px 12px; font-size: 12px; }
+.seat-layout-hint { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); }
 .reset-banner { padding: 10px 12px; border: 1px solid rgba(207, 92, 83, .5); background: rgba(207, 92, 83, .1); border-radius: var(--radius); color: var(--red); font-size: 12px; margin-bottom: 12px; }
 
 .identity-panel { margin: 0; min-width: 0; }
