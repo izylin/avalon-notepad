@@ -140,10 +140,14 @@ function isLaunchLog(value: unknown, playerCount: number): value is LaunchLog {
     isIntegerBetween(value.fails, 0, playerCount);
 }
 
+function isIdentityTag(value: unknown): value is IdentityTag {
+  return typeof value === "string" && (roleKeys as string[]).includes(value);
+}
+
 function isIdentityTagEvent(value: unknown, playerCount: number): value is IdentityTagEvent {
   if (!isRecord(value)) return false;
   return isSeat(value.seat, playerCount) &&
-    value.tag === "percival" &&
+    isIdentityTag(value.tag) &&
     isIntegerBetween(value.startMission, 0, 4) &&
     (value.endMission === undefined || isIntegerBetween(value.endMission, 0, 5));
 }
@@ -269,7 +273,7 @@ export function isSavedGameState(value: unknown): value is GameState {
   const validLegacyIdentityTags = value.identityTags === undefined || (
     isRecord(value.identityTags) &&
     Object.entries(value.identityTags).every(([seat, tag]) => (
-      isSeat(Number(seat), playerCount) && tag === "percival"
+      isSeat(Number(seat), playerCount) && isIdentityTag(tag)
     ))
   );
 
