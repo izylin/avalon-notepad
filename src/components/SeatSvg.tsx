@@ -109,7 +109,8 @@ export function SeatSvg({
   captionBottom,
   seatLayout,
   editing = false,
-  onSeatMove
+  onSeatMove,
+  tourTarget
 }: {
   n: number;
   leaderSeat: number;
@@ -122,6 +123,7 @@ export function SeatSvg({
   seatLayout?: SeatLayout;
   editing?: boolean;
   onSeatMove?: (seat: number, point: SeatPoint) => void;
+  tourTarget?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<{ seat: number; point: SeatPoint } | null>(null);
@@ -239,7 +241,7 @@ export function SeatSvg({
   }
 
   return (
-    <div className="seat-svg-wrap">
+    <div className="seat-svg-wrap" data-tour={tourTarget}>
       <svg
         ref={svgRef}
         width="100%"
