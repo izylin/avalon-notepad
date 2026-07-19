@@ -24,6 +24,8 @@ export type LaunchLog = {
   passed: boolean;
   missionResult: MissionResult;
   fails: number;
+  /** 仅记录任务成功 / 失败，不保存组队、投票等详细过程。 */
+  resultOnly?: boolean;
 };
 
 export type GameState = {
@@ -142,7 +144,8 @@ function isLaunchLog(value: unknown, playerCount: number): value is LaunchLog {
     isVotes(value.votes, playerCount) &&
     typeof value.passed === "boolean" &&
     isMissionResult(value.missionResult) &&
-    isIntegerBetween(value.fails, 0, playerCount);
+    isIntegerBetween(value.fails, 0, playerCount) &&
+    (value.resultOnly === undefined || typeof value.resultOnly === "boolean");
 }
 
 function isIdentityTag(value: unknown): value is IdentityTag {
@@ -384,6 +387,124 @@ export function completeMissionLaunch(current: GameState, result: "good" | "bad"
       fails: current.missionFailVotes
     } : log)
   };
+}
+
+/**
+ * 产品需求 #34：现场来不及逐项记录时，整轮只保留“任务成功 / 失败”。
+ * 当前任务已有的临时组队或投票记录会被替换，避免回顾页展示不完整详情。
+ */
+export function recordMissionResultOnly(current: GameState, result: "good" | "bad") {
+  const missionNo = current.currentMission + 1;
+  const minimalLog: LaunchLog = {
+    missionNo,
+    round: Math.min(5, current.rejectStreak + 1),
+    leaderSeat: current.leaderIndex + 1,
+    team: [],
+    votes: {},
+    passed: true,
+    missionResult: result,
+    fails: result === "bad" ? failsNeeded(current.playerCount, current.currentMission) : 0,
+    resultOnly: true
+  };
+
+  return {
+    ...current,
+    launchLog: [
+      ...current.launchLog.filter((log) => log.missionNo !== missionNo),
+      minimalLog
+    ]
+  };
+}
+
+function deriveOutcome(current: GameState, missionResults: MissionResult[]): GameState {
+  const goodWins = missionResults.filter((result) => result === "good").length;
+  const badWins = missionResults.filter((result) => result === "bad").length;
+
+  if (badWins >= 3) {
+    return {
+      ...current,
+      missionResults,
+      finished: true,
+      winner: "red",
+      awaitingAssassination: false
+    };
+  }
+
+  if (goodWins >= 3) {
+    if (current.roleToggle.assassin) {
+      return {
+        ...current,
+        missionResults,
+        finished: false,
+        winner: null,
+        awaitingAssassination: true
+      };
+    }
+    return {
+      ...current,
+      missionResults,
+      finished: true,
+      winner: "blue",
+      awaitingAssassination: false
+    };
+  }
+
+  const firstPendingMission = missionResults.findIndex((result) => result === null);
+  return {
+    ...current,
+    missionResults,
+    currentMission: firstPendingMission >= 0 ? firstPendingMission : current.currentMission,
+    finished: false,
+    winner: null,
+    awaitingAssassination: false
+  };
+}
+
+/**
+ * 产品需求 #33：在回顾页修正某轮的任务结果与最终通过组队的投票。
+ * 这里只更新历史记录，不回退 currentMission、phase、当前组队或当前投票状态。
+ */
+export function editMissionRecord(
+  current: GameState,
+  missionIndex: number,
+  result: "good" | "bad",
+  votes?: Record<number, Vote>
+) {
+  if (missionIndex < 0 || missionIndex >= current.missionResults.length) return current;
+
+  const missionResults = current.missionResults.map((value, index) => index === missionIndex ? result : value);
+  const missionNo = missionIndex + 1;
+  const launchIndex = current.launchLog.findLastIndex((log) => log.missionNo === missionNo && Boolean(log.missionResult));
+  const fallbackLog: LaunchLog = {
+    missionNo,
+    round: 1,
+    leaderSeat: current.leaderIndex + 1,
+    team: [],
+    votes: {},
+    passed: true,
+    missionResult: result,
+    fails: result === "bad" ? failsNeeded(current.playerCount, missionIndex) : 0,
+    resultOnly: true
+  };
+  const launchLog = launchIndex >= 0
+    ? current.launchLog.map((log, index) => index === launchIndex ? {
+      ...log,
+      votes: !log.resultOnly && votes ? { ...votes } : log.votes,
+      missionResult: result,
+      fails: log.resultOnly
+        ? (result === "bad" ? failsNeeded(current.playerCount, missionIndex) : 0)
+        : result === "good"
+          ? 0
+          : Math.max(log.fails, failsNeeded(current.playerCount, missionIndex))
+    } : log)
+    : [...current.launchLog, fallbackLog];
+
+  return deriveOutcome({ ...current, launchLog }, missionResults);
+}
+
+/** 向后兼容：仅修改任务结果。 */
+export function editMissionResult(current: GameState, missionIndex: number, result: "good" | "bad") {
+  return editMissionRecord(current, missionIndex, result);
 }
 
 export function finalizeMission(current: GameState, result: "good" | "bad") {

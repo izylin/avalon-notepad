@@ -14,6 +14,7 @@ import {
   appendHistory,
   completeMissionLaunch,
   defaultConfig,
+  editMissionRecord,
   effectiveIdentityTags,
   failsNeeded,
   finalizeMission,
@@ -26,6 +27,7 @@ import {
   normalizeState,
   peekSavedSummary,
   playerCounts,
+  recordMissionResultOnly,
   resolveAssassination,
   roleKeys,
   roles,
@@ -38,7 +40,8 @@ import {
   type RoleKey,
   type SaveSummary,
   type Screen,
-  type SeatPoint
+  type SeatPoint,
+  type Vote
 } from "@/lib/game";
 
 const tourStorageKey = "avalon_note_tour_v1";
@@ -112,6 +115,7 @@ export default function Home() {
   const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [tourOpen, setTourOpen] = useState(false);
+  const [quickRecordOpen, setQuickRecordOpen] = useState(false);
 
   useEffect(() => {
     // Deferred to an effect (rather than computed during render) so the first client
@@ -153,6 +157,7 @@ export default function Home() {
 
   function goTo(next: Screen) {
     setShowSave(false);
+    setQuickRecordOpen(false);
     setScreen(next);
   }
 
@@ -291,6 +296,17 @@ export default function Home() {
       votes[seat] = votes[seat] === "agree" ? "reject" : "agree";
       return { ...cur, votes };
     });
+  }
+
+  function quickRecordMission(result: "good" | "bad") {
+    setQuickRecordOpen(false);
+    updateState((cur) => finalizeMission(recordMissionResultOnly(cur, result), result));
+  }
+
+  function changeMissionRecord(missionIndex: number, result: "good" | "bad", votes?: Record<number, Vote>) {
+    updateState((cur) => editMissionRecord(cur, missionIndex, result, votes));
+    // 修改历史任务只更新该轮记录，不倒退当前流程；完成后回到正在进行的任务。
+    setViewMissionIndex(null);
   }
 
   const currentSize = state ? state.missionSizes[state.currentMission] : 0;
@@ -471,6 +487,24 @@ export default function Home() {
                       </span>
                       {state.seatLayout && <button className="ghost-btn seat-layout-btn" onClick={resetSeatLayout}>恢复默认排布</button>}
                     </div>
+                    <div className="quick-record-bar">
+                      <div>
+                        <strong>来不及记录完整流程？</strong>
+                        <span>可跳过组队、投票和任务牌数量，只保存本轮成功或失败。</span>
+                      </div>
+                      <button className="ghost-btn" type="button" onClick={() => setQuickRecordOpen((open) => !open)}>
+                        {quickRecordOpen ? "取消跳过" : "跳过详细记录"}
+                      </button>
+                    </div>
+                    {quickRecordOpen && (
+                      <div className="quick-record-panel">
+                        <p>选择后会直接结束本轮，仅记录任务结果。</p>
+                        <div className="step-actions">
+                          <button className="primary-btn" style={{ flex: 1 }} type="button" onClick={() => quickRecordMission("good")}>仅记任务成功</button>
+                          <button className="primary-btn danger-primary" style={{ flex: 1 }} type="button" onClick={() => quickRecordMission("bad")}>仅记任务失败</button>
+                        </div>
+                      </div>
+                    )}
                     {state.phase === "team" && (
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队 · {leaderSeat === 1 ? "我" : `${leaderSeat}号`}队长</h4>
@@ -522,7 +556,13 @@ export default function Home() {
                     </>
                     )}
                   </div>
-                ) : <MissionReview state={state} missionIndex={displayedMissionIndex} />}
+                ) : (
+                  <MissionReview
+                    state={state}
+                    missionIndex={displayedMissionIndex}
+                    onChangeRecord={changeMissionRecord}
+                  />
+                )}
                 <LaunchHistory state={state} missionIndex={displayedMissionIndex} />
               </section>
             )}
@@ -547,7 +587,11 @@ export default function Home() {
                 </div>
                 <div className="section-title"><h3>任务回顾</h3></div>
                 <MissionPager state={state} selectedMissionIndex={displayedMissionIndex} onSelect={setViewMissionIndex} />
-                <MissionReview state={state} missionIndex={displayedMissionIndex} />
+                <MissionReview
+                  state={state}
+                  missionIndex={displayedMissionIndex}
+                  onChangeRecord={changeMissionRecord}
+                />
                 <div className="step-actions">
                   <button className="primary-btn assassin-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => resolveAssassination(cur, true))}>
                     <span>刺杀成功</span>
@@ -574,6 +618,11 @@ export default function Home() {
                 </div>
                 <div className="section-title"><h3>任务回顾</h3></div>
                 <MissionPager state={state} selectedMissionIndex={displayedMissionIndex} onSelect={setViewMissionIndex} />
+                <MissionReview
+                  state={state}
+                  missionIndex={displayedMissionIndex}
+                  onChangeRecord={changeMissionRecord}
+                />
                 <button className="primary-btn" style={{ width: "100%" }} onClick={() => goTo("home")}>返回首页</button>
               </section>
             )}
