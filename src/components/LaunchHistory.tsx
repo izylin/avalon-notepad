@@ -1,4 +1,5 @@
 import { missionLogsFor, type GameState } from "@/lib/game";
+import { VoteResultGraphic } from "./VoteResultGraphic";
 
 export function LaunchHistory({ state, missionIndex }: { state: GameState; missionIndex: number }) {
   const logs = missionLogsFor(state, missionIndex);
@@ -15,10 +16,7 @@ export function LaunchHistory({ state, missionIndex }: { state: GameState; missi
             </div>
             <span className={`tag ${log.missionResult === "good" ? "blue" : log.missionResult === "bad" || !log.passed ? "bad" : ""}`}>{log.missionResult === "good" ? "好人任务成功" : log.missionResult === "bad" ? "坏人任务成功" : log.passed ? "已通过表决" : "未通过"}</span>
           </div>
-          <div className="vote-strip">
-            <div className="vote-box"><label>赞成发车</label><strong>{Object.keys(log.votes).filter((k) => log.votes[Number(k)] === "agree").map((k) => k === "1" ? "我" : k).join(", ") || "—"}</strong></div>
-            <div className="vote-box reject"><label>反对发车</label><strong>{Object.keys(log.votes).filter((k) => log.votes[Number(k)] === "reject").map((k) => k === "1" ? "我" : k).join(", ") || "—"}</strong></div>
-          </div>
+          <VoteResultGraphic votes={log.votes} playerCount={state.playerCount} passed={log.passed} />
         </div>
       ))}
     </>

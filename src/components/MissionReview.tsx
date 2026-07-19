@@ -1,5 +1,6 @@
 import { effectiveIdentityTags, missionCardClass, missionLogsFor, type GameState } from "@/lib/game";
 import { SeatSvg } from "./SeatSvg";
+import { VoteResultGraphic } from "./VoteResultGraphic";
 
 export function MissionReview({ state, missionIndex }: { state: GameState; missionIndex: number }) {
   const logs = missionLogsFor(state, missionIndex);
@@ -23,6 +24,7 @@ export function MissionReview({ state, missionIndex }: { state: GameState; missi
             captionTop={`队长 ${leaderText}`}
             captionBottom={`上车 ${finalLog.team.map((s) => s === 1 ? "我" : s).join(",")}`}
           />
+          <VoteResultGraphic votes={finalLog.votes} playerCount={state.playerCount} passed={finalLog.passed} />
           <div className="mission-table">
             <div className="mission-table-row"><span>队伍</span><strong>{finalLog.team.map((s) => s === 1 ? "我" : `${s}号`).join("、")}</strong></div>
             <div className="mission-table-row"><span>任务牌</span><strong>{failText}</strong></div>

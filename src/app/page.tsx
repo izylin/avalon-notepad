@@ -8,6 +8,7 @@ import { MissionPager } from "@/components/MissionPager";
 import { MissionReview } from "@/components/MissionReview";
 import { RulesScreen } from "@/components/RulesScreen";
 import { SeatSvg } from "@/components/SeatSvg";
+import { TutorialGuide, type TutorialStep } from "@/components/TutorialGuide";
 import {
   allAgreeVotes,
   appendHistory,
@@ -39,6 +40,37 @@ import {
   type Screen,
   type SeatPoint
 } from "@/lib/game";
+
+const tourStorageKey = "avalon_note_tour_v1";
+// 产品需求 #12：当前迭代隐藏所有“从存档继续”入口，但保留存档读写与恢复代码，便于后续重新开放。
+const continueFromSaveEnabled = false;
+const tutorialSteps: TutorialStep[] = [
+  {
+    selector: '[data-tour="mission-progress"]',
+    title: "任务进度",
+    description: "这里展示五轮任务的进展。完成任务后，可点击对应任务回看当轮的组队、投票与任务结果。"
+  },
+  {
+    selector: '[data-tour="identity-tags"]',
+    title: "身份推测卡",
+    description: "这里用于记录您对玩家身份的推测。请先选择一个身份标签，再点击对应座位，即可从当前任务起标记该玩家。"
+  },
+  {
+    selector: '[data-tour="seat-board"]',
+    title: "座位与组队",
+    description: "圆桌对应现场座位。组队阶段点击座位选择上车玩家；投票阶段点击座位切换赞成或反对。长按座位还可调整位置。"
+  },
+  {
+    selector: '[data-tour="mission-actions"]',
+    title: "推进本轮",
+    description: "完成当前步骤后，在这里确认组队、结算投票或结算任务。每次操作都会同步保存本局记录。"
+  },
+  {
+    selector: '[data-tour="notes-entry"]',
+    title: "对局笔记",
+    description: "点击这里记录可疑发言、身份推测与复盘线索。返回战况页面后，笔记内容仍会保留。"
+  }
+];
 
 function formatRelativeTime(ms?: number) {
   if (!ms) return "本机存档";
@@ -79,6 +111,7 @@ export default function Home() {
   const [savedSummary, setSavedSummary] = useState<SaveSummary | null>(null);
   const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     // Deferred to an effect (rather than computed during render) so the first client
@@ -235,7 +268,13 @@ export default function Home() {
     setState(next);
     setViewMissionIndex(null);
     persistState(next);
+    setTourOpen(localStorage.getItem(tourStorageKey) !== "done");
     goTo("record");
+  }
+
+  function closeTour() {
+    localStorage.setItem(tourStorageKey, "done");
+    setTourOpen(false);
   }
 
   function toggleTeamSeat(seat: number) {
@@ -295,28 +334,25 @@ export default function Home() {
                     <h1 className="home-title">阿瓦隆笔记本</h1>
                     <p className="home-subtitle">记录组队、投票与任务结果，全部数据只保存在本机。</p>
                     <div className="hero-actions">
-                      <button className="primary-btn" onClick={startNewGame}>新开一局</button>
+                      {continueFromSaveEnabled && savedSummary && !savedSummary.finished && (
+                        <button className="primary-btn" onClick={continueGame}>继续当前对局</button>
+                      )}
+                      <button
+                        className={continueFromSaveEnabled && savedSummary && !savedSummary.finished ? "ghost-btn" : "primary-btn"}
+                        onClick={startNewGame}
+                      >
+                        新开一局
+                      </button>
                     </div>
+                    {continueFromSaveEnabled && savedSummary && !savedSummary.finished && (
+                      <p className="hero-save-meta">
+                        {savedSummary.playerCount} 人局 · 任务 {savedSummary.currentMission + 1}/{savedSummary.missionCount} · {formatRelativeTime(savedSummary.updatedAt)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div className="home-below-hero">
-                  {savedSummary && (
-                    <button className="recent-card" onClick={continueGame}>
-                      <div className="recent-card-body">
-                        <span className={`tag ${savedSummary.finished ? (savedSummary.winner === "blue" ? "blue" : "bad") : ""}`}>
-                          {savedSummary.finished ? (savedSummary.winner === "blue" ? "蓝方胜利" : "红方胜利") : "进行中"}
-                        </span>
-                        <strong className="recent-card-title">
-                          {savedSummary.playerCount} 人局
-                          {!savedSummary.finished && ` · 任务 ${savedSummary.currentMission + 1}/${savedSummary.missionCount}`}
-                        </strong>
-                        <span className="recent-card-meta">{formatRelativeTime(savedSummary.updatedAt)}</span>
-                      </div>
-                      <span className="recent-card-arrow" aria-hidden="true">→</span>
-                    </button>
-                  )}
-
                   {historyStats && historyStats.total > 0 && (
                     <div className="stats-card">
                       <div className="section-title" style={{ margin: "0 0 12px" }}><h3>本机战绩</h3></div>
@@ -401,7 +437,10 @@ export default function Home() {
                     <button className="ghost-btn" onClick={() => goTo("rulesInGame")}>规则</button>
                   </div>
                   <div className="nav-center">{state.playerCount} 人局战况</div>
-                  <button className="ghost-btn nav-right" onClick={() => goTo("notes")}>笔记</button>
+                  <div className="nav-right nav-actions">
+                    <button className="ghost-btn" onClick={() => setTourOpen(true)}>指引</button>
+                    <button className="ghost-btn" data-tour="notes-entry" onClick={() => goTo("notes")}>笔记</button>
+                  </div>
                 </nav>
                 {showSave && (
                   <div className="save-confirm">
@@ -414,7 +453,9 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-                <MissionPager state={state} selectedMissionIndex={displayedMissionIndex} onSelect={setViewMissionIndex} />
+                <div data-tour="mission-progress">
+                  <MissionPager state={state} selectedMissionIndex={displayedMissionIndex} onSelect={setViewMissionIndex} />
+                </div>
                 {isLiveMissionView ? (
                   <div className={missionCardClass(state.missionResults[state.currentMission])}>
                     {state.rejectStreak > 0 && <div className="reset-banner">已连续 {state.rejectStreak} 次组队被否决{state.rejectStreak >= 4 ? "，本次为强制轮，将直接出发不再表决" : ""}</div>}
@@ -436,9 +477,9 @@ export default function Home() {
                       <p>需选出 {currentSize} 人组队，当前已选 {state.pickedTeam.length} 人</p>
                       <div className="seat-identity-stage">
                         <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleTeamSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
+                        <SeatSvg tourTarget="seat-board" seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleTeamSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`需上车 ${currentSize} 人`} />
                       </div>
-                      <button className="primary-btn" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
+                      <button className="primary-btn" data-tour="mission-actions" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
                     </>
                     )}
                     {state.phase === "vote" && (
@@ -447,9 +488,9 @@ export default function Home() {
                       <p>队伍：{state.pickedTeam.map((s) => s === 1 ? "我" : `${s}号`).join("、")}，请记录每位玩家的投票</p>
                       <div className="seat-identity-stage">
                         <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleVoteSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
+                        <SeatSvg tourTarget="seat-board" seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleVoteSeat)} captionTop={`队长 ${leaderSeat === 1 ? "我" : `${leaderSeat}号`}`} captionBottom={`上车 ${state.pickedTeam.map((s) => s === 1 ? "我" : s).join(",")}`} />
                       </div>
-                      <div className="step-actions">
+                      <div className="step-actions" data-tour="mission-actions">
                         <button className="ghost-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => ({ ...cur, phase: "team", votes: {} }))}>返回重选</button>
                         <button className="primary-btn" style={{ flex: 1 }} disabled={Object.keys(state.votes).length !== state.playerCount} onClick={() => updateState((cur) => {
                           const agree = Object.values(cur.votes).filter((v) => v === "agree").length;
@@ -467,14 +508,14 @@ export default function Home() {
                       <p>上车 {state.pickedTeam.length} 人暗中提交任务牌，请填写本次任务收到的失败票数量。</p>
                       <div className="seat-identity-stage">
                         <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={selectedIdentityTag ? (seat) => toggleIdentityTag(seat, selectedIdentityTag) : undefined} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
+                        <SeatSvg tourTarget="seat-board" seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={selectedIdentityTag ? (seat) => toggleIdentityTag(seat, selectedIdentityTag) : undefined} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
                       </div>
                       <div className="fail-vote-counter">
                         <button className="counter-btn" disabled={state.missionFailVotes <= 0} onClick={() => updateState((cur) => ({ ...cur, missionFailVotes: Math.max(0, cur.missionFailVotes - 1) }))}>－</button>
                         <div className="counter-display"><div className="counter-main"><strong>{state.missionFailVotes}</strong> 张失败票</div><div className="counter-sub">成功票 {state.pickedTeam.length - state.missionFailVotes} 张 · 共 {state.pickedTeam.length} 人</div></div>
                         <button className="counter-btn" disabled={state.missionFailVotes >= state.pickedTeam.length} onClick={() => updateState((cur) => ({ ...cur, missionFailVotes: Math.min(cur.pickedTeam.length, cur.missionFailVotes + 1) }))}>＋</button>
                       </div>
-                      <button className="primary-btn" style={{ width: "100%" }} onClick={() => updateState((cur) => {
+                      <button className="primary-btn" data-tour="mission-actions" style={{ width: "100%" }} onClick={() => updateState((cur) => {
                         const result = cur.missionFailVotes >= failsNeeded(cur.playerCount, cur.currentMission) ? "bad" : "good";
                         return finalizeMission(completeMissionLaunch(cur, result), result);
                       })}>结算任务</button>
@@ -539,6 +580,7 @@ export default function Home() {
         </div>
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
       </div>
+      <TutorialGuide open={tourOpen && activeScreen === "record"} steps={tutorialSteps} onClose={closeTour} />
       <FeedbackWidget screen={screen} />
     </main>
   );
