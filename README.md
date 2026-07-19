@@ -1,6 +1,6 @@
 # 阿瓦隆笔记本（Avalon Notepad）
 
-配合线下阿瓦隆桌游使用的移动端/网页记录工具。用于记录组队、投票与任务结果，全部数据只保存在本机浏览器（`localStorage`），不上传、不联网存储。
+配合线下阿瓦隆桌游使用的移动端/网页记录工具。用于记录组队、投票与任务结果，对局数据只保存在本机浏览器（`localStorage`）；用户可主动通过反馈入口提交问题或建议。
 
 ## 产品定位
 
@@ -42,7 +42,7 @@
 
 - [Next.js](https://nextjs.org/) 16（App Router）+ React 19 + TypeScript
 - 纯 CSS（无 UI 框架），状态与游戏规则集中在 [`src/lib/game.ts`](src/lib/game.ts)
-- 无后端，数据只存于浏览器 `localStorage`
+- 对局数据只存于浏览器 `localStorage`；用户主动提交的产品反馈会创建为 GitHub Issue
 
 ## 目录结构
 
@@ -66,3 +66,15 @@ npm run build    # 生产构建
 npm run start    # 启动生产服务器
 npm run lint     # ESLint 检查
 ```
+
+## 反馈收集配置
+
+右下角的「反馈」按钮会截取当前页面，允许用户框选、画箭头、自由圈画或遮盖敏感区域，然后将文字、标注截图与页面上下文创建为 GitHub Issue。复制 `.env.example` 为 `.env.local` 并填写：
+
+```bash
+FEEDBACK_GITHUB_TOKEN=...
+FEEDBACK_GITHUB_REPOSITORY=owner/repository
+FEEDBACK_GITHUB_BRANCH=main
+```
+
+令牌须为该仓库的 fine-grained personal access token，并授予 **Issues: Read and write** 和 **Contents: Read and write**。截图保存在仓库的 `feedback-attachments/` 中，Issue 会链接到该图片；部署前请确认该仓库的可见性与反馈截图的隐私预期一致。未配置令牌时，客户端会显示提交失败，不会假装已收集反馈。

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { IdentityTagsPanel } from "@/components/IdentityTagsPanel";
 import { LaunchHistory } from "@/components/LaunchHistory";
 import { MissionPager } from "@/components/MissionPager";
@@ -580,6 +581,7 @@ export default function Home() {
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
       </div>
       <TutorialGuide open={tourOpen && activeScreen === "record"} steps={tutorialSteps} onClose={closeTour} />
+      <FeedbackWidget screen={screen} />
     </main>
   );
 }
