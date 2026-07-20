@@ -492,6 +492,24 @@ export default function Home() {
                       </span>
                       {state.seatLayout && <button className="ghost-btn seat-layout-btn" onClick={resetSeatLayout}>恢复默认排布</button>}
                     </div>
+                    <div className="quick-record-bar">
+                      <div>
+                        <strong>来不及记录完整流程？</strong>
+                        <span>可跳过组队、投票和任务牌数量，只保存本轮成功或失败。</span>
+                      </div>
+                      <button className="ghost-btn" type="button" onClick={() => setQuickRecordOpen((open) => !open)}>
+                        {quickRecordOpen ? "取消跳过" : "跳过详细记录"}
+                      </button>
+                    </div>
+                    {quickRecordOpen && (
+                      <div className="quick-record-panel">
+                        <p>选择后会直接结束本轮，仅记录任务结果。</p>
+                        <div className="step-actions">
+                          <button className="primary-btn" style={{ flex: 1 }} type="button" onClick={() => quickRecordMission("good")}>仅记任务成功</button>
+                          <button className="primary-btn danger-primary" style={{ flex: 1 }} type="button" onClick={() => quickRecordMission("bad")}>仅记任务失败</button>
+                        </div>
+                      </div>
+                    )}
                     {state.phase === "team" && (
                     <>
                       <h4>第 {state.rejectStreak + 1} 次组队 · {leaderSeat === 1 ? "我" : `${leaderSeat}号`}队长</h4>
