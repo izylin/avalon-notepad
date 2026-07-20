@@ -72,6 +72,11 @@ const tutorialSteps: TutorialStep[] = [
     selector: '[data-tour="notes-entry"]',
     title: "对局笔记",
     description: "点击这里记录可疑发言、身份推测与复盘线索。返回战况页面后，笔记内容仍会保留。"
+  },
+  {
+    selector: '[data-tour="quick-record"]',
+    title: "跳过详细记录",
+    description: "现场来不及逐项记录时，可在页面底部使用这里，跳过组队、投票和任务牌数量，只保存本轮任务成功或失败。"
   }
 ];
 
@@ -564,6 +569,25 @@ export default function Home() {
                   />
                 )}
                 <LaunchHistory state={state} missionIndex={displayedMissionIndex} />
+                {isLiveMissionView && (
+                  <div className="quick-record-footer">
+                    <button
+                      className="quick-record-trigger"
+                      data-tour="quick-record"
+                      type="button"
+                      aria-expanded={quickRecordOpen}
+                      onClick={() => setQuickRecordOpen((open) => !open)}
+                    >
+                      {quickRecordOpen ? "收起" : "跳过详细记录"}
+                    </button>
+                    {quickRecordOpen && (
+                      <div className="quick-record-panel" aria-label="只记录任务结果">
+                        <button className="primary-btn" type="button" onClick={() => quickRecordMission("good")}>仅记任务成功</button>
+                        <button className="primary-btn danger-primary" type="button" onClick={() => quickRecordMission("bad")}>仅记任务失败</button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 

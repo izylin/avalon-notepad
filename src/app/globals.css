@@ -1241,6 +1241,39 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
 }
 
 /* 任务 #34：快速跳过详细记录，仅保存任务成功 / 失败 */
+.quick-record-footer {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.quick-record-trigger {
+  appearance: none;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color .18s ease, opacity .18s ease;
+}
+.quick-record-trigger:hover { color: var(--ink); }
+.quick-record-trigger:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.quick-record-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
 .quick-record-bar {
   display: flex;
   align-items: center;
@@ -1305,6 +1338,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
 .result-only-review span { color: var(--muted); font-size: 12px; line-height: 1.55; }
 
 @media (max-width: 560px) {
+  .quick-record-panel { grid-template-columns: 1fr; }
   .quick-record-bar { align-items: stretch; flex-direction: column; }
   .quick-record-bar .ghost-btn { width: 100%; }
   .mission-review-head { align-items: stretch; flex-direction: column; }
