@@ -1273,26 +1273,6 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
-}
-.quick-record-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1px dashed var(--line-gold);
-  border-radius: var(--radius);
-  background: rgba(201, 164, 92, .06);
-}
-.quick-record-bar > div { min-width: 0; }
-.quick-record-bar strong { display: block; color: var(--ink); font-size: 12px; }
-.quick-record-bar span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.45; }
-.quick-record-bar .ghost-btn { flex: 0 0 auto; }
-.quick-record-panel {
-  display: grid;
-  gap: 10px;
-  margin: -4px 0 14px;
   padding: 12px;
   border: 1px solid var(--line-gold);
   border-radius: var(--radius);
@@ -1339,8 +1319,6 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
 
 @media (max-width: 560px) {
   .quick-record-panel { grid-template-columns: 1fr; }
-  .quick-record-bar { align-items: stretch; flex-direction: column; }
-  .quick-record-bar .ghost-btn { width: 100%; }
   .mission-review-head { align-items: stretch; flex-direction: column; }
   .mission-edit-btn { width: 100%; }
 }
