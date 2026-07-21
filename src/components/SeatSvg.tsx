@@ -1,5 +1,9 @@
-import { useId } from "react";
-import type { IdentityTag, Vote } from "@/lib/game";
+import { useEffect, useId, useRef, useState } from "react";
+import { seatCanvas, type IdentityTag, type SeatLayout, type SeatPoint, type Vote } from "@/lib/game";
+
+const longPressMs = 400;
+// 长按判定期内允许的手指抖动；超过即视为滑动页面。
+const longPressSlopPx = 8;
 
 const roleVisuals: Record<IdentityTag, { ink: string; glow: string; accent: string; ringOpacity: number; patternScale?: number }> = {
   merlin: { ink: "#2f6ea6", glow: "#d8ebfb", accent: "#78b7e6", ringOpacity: .58 },
@@ -74,6 +78,26 @@ function seatPositions(n: number, cx = 172, cy = 150, rx = 98, ry = 76) {
   return positions;
 }
 
+function seatRadius(seat: number) {
+  return seat === 1 ? 26 : 24;
+}
+
+function toSvgPoint(svg: SVGSVGElement | null, source: { clientX: number; clientY: number }): SeatPoint | null {
+  const ctm = svg?.getScreenCTM();
+  if (!ctm) return null;
+  const point = new DOMPoint(source.clientX, source.clientY).matrixTransform(ctm.inverse());
+  return { x: point.x, y: point.y };
+}
+
+// 座位连同外圈身份光环整体留在画布内，否则拖到边缘会被 viewBox 裁掉。
+function clampToCanvas(point: SeatPoint, seat: number): SeatPoint {
+  const margin = seatRadius(seat) + 11;
+  return {
+    x: Math.min(Math.max(point.x, margin), seatCanvas.width - margin),
+    y: Math.min(Math.max(point.y, margin), seatCanvas.height - margin)
+  };
+}
+
 export function SeatSvg({
   n,
   leaderSeat,
@@ -82,7 +106,11 @@ export function SeatSvg({
   identityTags = {},
   onSeatClick,
   captionTop,
-  captionBottom
+  captionBottom,
+  seatLayout,
+  editing = false,
+  onSeatMove,
+  tourTarget
 }: {
   n: number;
   leaderSeat: number;
@@ -92,12 +120,135 @@ export function SeatSvg({
   onSeatClick?: (seat: number) => void;
   captionTop: string;
   captionBottom: string;
+  seatLayout?: SeatLayout;
+  editing?: boolean;
+  onSeatMove?: (seat: number, point: SeatPoint) => void;
+  tourTarget?: string;
 }) {
-  const pos = seatPositions(n);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [drag, setDrag] = useState<{ seat: number; point: SeatPoint } | null>(null);
+  const dragRef = useRef<{ seat: number; point: SeatPoint } | null>(null);
+  const pending = useRef<{ timer: number; x: number; y: number; unlisten: () => void } | null>(null);
+  const draggedRef = useRef(false);
+  const dragCleanup = useRef<(() => void) | null>(null);
+  const onSeatMoveRef = useRef(onSeatMove);
+  const pos = { ...seatPositions(n), ...seatLayout };
+  if (drag) pos[drag.seat] = drag.point;
+  const hasCustomLayout = Object.keys(seatLayout ?? {}).length > 0;
   const svgId = useId().replace(/\W/g, "");
+  const movable = Boolean(onSeatMove);
+
+  useEffect(() => {
+    onSeatMoveRef.current = onSeatMove;
+  });
+
+  // 卸载时清掉待定的长按计时器和进行中的拖动，两者都持有 window 监听。
+  useEffect(() => () => {
+    if (pending.current) {
+      clearTimeout(pending.current.timer);
+      pending.current.unlisten();
+      pending.current = null;
+    }
+    dragCleanup.current?.();
+    dragCleanup.current = null;
+  }, []);
+
+  function cancelPending() {
+    if (!pending.current) return;
+    clearTimeout(pending.current.timer);
+    pending.current.unlisten();
+    pending.current = null;
+  }
+
+  // 监听在拖动开始的同一个同步调用里挂上：若改用 effect 订阅，
+  // startDrag 到订阅生效之间存在空窗，落在其中的 pointermove 会丢失。
+  function startDrag(seat: number, source: { clientX: number; clientY: number }) {
+    const point = toSvgPoint(svgRef.current, source);
+    if (!point) return;
+    const first = { seat, point: clampToCanvas(point, seat) };
+    dragRef.current = first;
+    setDrag(first);
+
+    function onMove(event: PointerEvent) {
+      const moved = toSvgPoint(svgRef.current, event);
+      if (!moved) return;
+      const next = { seat, point: clampToCanvas(moved, seat) };
+      dragRef.current = next;
+      setDrag(next);
+    }
+    function onEnd() {
+      const committed = dragRef.current;
+      dragCleanup.current?.();
+      dragCleanup.current = null;
+      dragRef.current = null;
+      setDrag(null);
+      if (committed) onSeatMoveRef.current?.(committed.seat, committed.point);
+    }
+
+    dragCleanup.current?.();
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    dragCleanup.current = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+  }
+
+  function handlePointerDown(seat: number, event: React.PointerEvent) {
+    if (!movable) return;
+    if (editing) {
+      event.preventDefault();
+      startDrag(seat, event);
+      return;
+    }
+    // 非编辑模式：长按才进入拖动，短按仍然是选人/投票。
+    const { clientX, clientY } = event;
+    cancelPending();
+
+    // 待定阶段同样监听 window：手指按下后滑出座位再松开时，
+    // 座位自身收不到 pointerup，计时器会照常触发出一个幽灵拖拽。
+    function onPendingMove(moveEvent: PointerEvent) {
+      const wait = pending.current;
+      if (wait && Math.hypot(moveEvent.clientX - wait.x, moveEvent.clientY - wait.y) > longPressSlopPx) {
+        cancelPending();
+      }
+    }
+    function onPendingEnd() {
+      cancelPending();
+    }
+    function unlisten() {
+      window.removeEventListener("pointermove", onPendingMove);
+      window.removeEventListener("pointerup", onPendingEnd);
+      window.removeEventListener("pointercancel", onPendingEnd);
+    }
+    window.addEventListener("pointermove", onPendingMove);
+    window.addEventListener("pointerup", onPendingEnd);
+    window.addEventListener("pointercancel", onPendingEnd);
+
+    pending.current = {
+      x: clientX,
+      y: clientY,
+      unlisten,
+      timer: window.setTimeout(() => {
+        unlisten();
+        pending.current = null;
+        draggedRef.current = true;
+        startDrag(seat, { clientX, clientY });
+      }, longPressMs)
+    };
+  }
+
   return (
-    <div className="seat-svg-wrap">
-      <svg width="100%" viewBox="0 0 344 320" style={{ display: "block", width: "100%" }}>
+    <div className="seat-svg-wrap" data-tour={tourTarget}>
+      <svg
+        ref={svgRef}
+        width="100%"
+        viewBox={`0 0 ${seatCanvas.width} ${seatCanvas.height}`}
+        className={editing ? "seat-svg seat-svg-editing" : "seat-svg"}
+        style={{ display: "block", width: "100%" }}
+      >
         <defs>
           {(Object.keys(roleVisuals) as IdentityTag[]).map((tag) => {
             const visual = roleVisuals[tag];
@@ -112,17 +263,20 @@ export function SeatSvg({
           })}
           {Array.from({ length: n }, (_, i) => i + 1).map((seat) => {
             const p = pos[seat];
-            const r = seat === 1 ? 26 : 24;
+            const r = seatRadius(seat);
             return (
               <mask key={seat} id={`${svgId}-role-ring-${seat}`}>
-                <rect width="344" height="320" fill="black" />
+                <rect width={seatCanvas.width} height={seatCanvas.height} fill="black" />
                 <circle cx={p.x} cy={p.y} r={r + 11} fill="white" />
                 <circle cx={p.x} cy={p.y} r={r + 2} fill="black" />
               </mask>
             );
           })}
         </defs>
-        <ellipse cx="172" cy="150" rx="98" ry="76" fill="none" stroke="var(--line-gold)" strokeWidth="1.8" />
+        {/* 默认圆桌轮廓正好穿过默认座位；自定义排布后它不再贴合，反而误导。 */}
+        {hasCustomLayout ? null : (
+          <ellipse cx="172" cy="150" rx="98" ry="76" fill="none" stroke="var(--line-gold)" strokeWidth="1.8" />
+        )}
         <ellipse cx="172" cy="150" rx="50" ry="38" fill="var(--panel)" stroke="var(--line-gold)" strokeWidth="1.2" />
         <text fontSize="11" x="172" y="146" textAnchor="middle" fill="var(--muted)">{captionTop}</text>
         <text fontSize="11" x="172" y="159" textAnchor="middle" fill="var(--muted)">{captionBottom}</text>
@@ -133,24 +287,34 @@ export function SeatSvg({
           const isLeader = seat === leaderSeat;
           const tag = identityTags[seat];
           const vote = voteMap[seat];
-          const clickable = Boolean(onSeatClick);
-          const r = isMe ? 26 : 24;
+          // 编辑座位图时不接受点击，否则拖动会顺带改掉上车名单或投票。
+          const clickable = Boolean(onSeatClick) && !editing;
+          const r = seatRadius(seat);
           const fill = vote === "agree" ? "var(--blue)" : vote === "reject" ? "var(--red)" : onTeam ? "var(--gold)" : "var(--panel-raised)";
           const stroke = vote ? "var(--gold-bright)" : onTeam ? "var(--gold-bright)" : isMe ? "var(--muted)" : "var(--line)";
           const textFill = vote || onTeam ? "var(--gold-ink)" : "var(--muted)";
           return (
             <g
               key={seat}
+              className={movable ? "seat-node" : undefined}
               role={clickable ? "button" : undefined}
               tabIndex={clickable ? 0 : undefined}
-              style={clickable ? { cursor: "pointer" } : undefined}
-              onClick={clickable ? () => onSeatClick?.(seat) : undefined}
+              style={editing ? { cursor: drag?.seat === seat ? "grabbing" : "grab" } : clickable ? { cursor: "pointer" } : undefined}
+              onClick={clickable ? () => {
+                // 长按拖动结束后浏览器仍会补一次 click，这里吞掉它。
+                if (draggedRef.current) {
+                  draggedRef.current = false;
+                  return;
+                }
+                onSeatClick?.(seat);
+              } : undefined}
               onKeyDown={clickable ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   onSeatClick?.(seat);
                 }
               } : undefined}
+              onPointerDown={movable ? (event) => handlePointerDown(seat, event) : undefined}
             >
               {tag ? (
                 <>

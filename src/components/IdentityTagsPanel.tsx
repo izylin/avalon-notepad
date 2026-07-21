@@ -64,7 +64,7 @@ export function IdentityTagsPanel({
   }, {});
 
   return (
-    <div className="identity-panel">
+    <div className="identity-panel" data-tour="identity-tags">
       <div className="section-title"><h3>身份标签</h3><span className="tag blue">{selectedTag ? "点击座位标记" : "从当前任务起生效"}</span></div>
       <div className="identity-rail" aria-label="选择身份标签">
         {enabledRoles.map((key) => (

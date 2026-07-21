@@ -12,6 +12,9 @@ export type IdentityTagEvent = {
   endMission?: number;
 };
 
+export type SeatPoint = { x: number; y: number };
+export type SeatLayout = Record<number, SeatPoint>;
+
 export type LaunchLog = {
   missionNo: number;
   round: number;
@@ -21,6 +24,8 @@ export type LaunchLog = {
   passed: boolean;
   missionResult: MissionResult;
   fails: number;
+  /** 仅记录任务成功 / 失败，不保存组队、投票等详细过程。 */
+  resultOnly?: boolean;
 };
 
 export type GameState = {
@@ -38,6 +43,7 @@ export type GameState = {
   missionFailVotes: number;
   identityTags?: Record<number, IdentityTag>;
   identityTagEvents: IdentityTagEvent[];
+  seatLayout?: SeatLayout;
   notes: string;
   finished: boolean;
   winner: "blue" | "red" | null;
@@ -94,6 +100,91 @@ export const historyKey = "avalon_note_history_v1";
 export const themeStorageKey = "avalon_note_theme_v1";
 export const roleKeys = Object.keys(roles) as RoleKey[];
 export const playerCounts = [5, 6, 7, 8, 9, 10];
+export const seatCanvas = { width: 344, height: 320 };
+const maxSavedCharacters = 256 * 1024;
+const maxNotesLength = 10_000;
+const maxLaunchLogs = 25;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isIntegerBetween(value: unknown, min: number, max: number): value is number {
+  return Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
+}
+
+function isMissionResult(value: unknown): value is MissionResult {
+  return value === null || value === "good" || value === "bad";
+}
+
+function isSeat(value: unknown, playerCount: number): value is number {
+  return isIntegerBetween(value, 1, playerCount);
+}
+
+function isSeatList(value: unknown, playerCount: number): value is number[] {
+  return Array.isArray(value) &&
+    value.length <= playerCount &&
+    new Set(value).size === value.length &&
+    value.every((seat) => isSeat(seat, playerCount));
+}
+
+function isVotes(value: unknown, playerCount: number): value is Record<number, Vote> {
+  if (!isRecord(value) || Object.keys(value).length > playerCount) return false;
+  return Object.entries(value).every(([seat, vote]) => (
+    isSeat(Number(seat), playerCount) && (vote === "agree" || vote === "reject")
+  ));
+}
+
+function isLaunchLog(value: unknown, playerCount: number): value is LaunchLog {
+  if (!isRecord(value)) return false;
+  return isIntegerBetween(value.missionNo, 1, 5) &&
+    isIntegerBetween(value.round, 1, 5) &&
+    isSeat(value.leaderSeat, playerCount) &&
+    isSeatList(value.team, playerCount) &&
+    isVotes(value.votes, playerCount) &&
+    typeof value.passed === "boolean" &&
+    isMissionResult(value.missionResult) &&
+    isIntegerBetween(value.fails, 0, playerCount) &&
+    (value.resultOnly === undefined || typeof value.resultOnly === "boolean");
+}
+
+function isIdentityTag(value: unknown): value is IdentityTag {
+  return typeof value === "string" && (roleKeys as string[]).includes(value);
+}
+
+function isIdentityTagEvent(value: unknown, playerCount: number): value is IdentityTagEvent {
+  if (!isRecord(value)) return false;
+  return isSeat(value.seat, playerCount) &&
+    isIdentityTag(value.tag) &&
+    isIntegerBetween(value.startMission, 0, 4) &&
+    (value.endMission === undefined || isIntegerBetween(value.endMission, 0, 5));
+}
+
+function isSeatPoint(value: unknown): value is SeatPoint {
+  if (!isRecord(value)) return false;
+  const { x, y } = value;
+  return typeof x === "number" && Number.isFinite(x) && x >= 0 && x <= seatCanvas.width &&
+    typeof y === "number" && Number.isFinite(y) && y >= 0 && y <= seatCanvas.height;
+}
+
+function isSeatLayout(value: unknown, playerCount: number): value is SeatLayout {
+  if (!isRecord(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length <= playerCount &&
+    entries.every(([seat, point]) => isSeat(Number(seat), playerCount) && isSeatPoint(point));
+}
+
+function isHistoryEntry(value: unknown): value is HistoryEntry {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string" &&
+    value.id.length > 0 && value.id.length <= 100 &&
+    isIntegerBetween(value.playerCount, 5, 10) &&
+    (value.winner === "blue" || value.winner === "red") &&
+    Array.isArray(value.missionResults) &&
+    value.missionResults.length === 5 &&
+    value.missionResults.every(isMissionResult) &&
+    typeof value.finishedAt === "number" && Number.isFinite(value.finishedAt);
+}
 
 export function failsNeeded(playerCount: number, missionIndex: number) {
   return playerCount >= 8 && missionIndex === 3 ? 2 : 1;
@@ -133,7 +224,7 @@ export function freshState(playerCount: number, roleToggle = togglesFor(playerCo
 export function peekSavedSummary(): SaveSummary | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(storageKey);
-  if (!raw) return null;
+  if (!raw || raw.length > maxSavedCharacters) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isSavedGameState(parsed)) return null;
@@ -155,9 +246,15 @@ export function loadHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(historyKey);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!raw) return [];
+    if (raw.length > maxSavedCharacters) throw new Error("history is too large");
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length > 30 || !parsed.every(isHistoryEntry)) {
+      throw new Error("invalid history");
+    }
+    return parsed;
   } catch {
+    localStorage.removeItem(historyKey);
     return [];
   }
 }
@@ -185,22 +282,49 @@ export function allAgreeVotes(playerCount: number): Record<number, Vote> {
 }
 
 export function isSavedGameState(value: unknown): value is GameState {
-  if (typeof value !== "object" || value === null) return false;
-  const saved = value as Record<string, unknown>;
-  return (
-    typeof saved.playerCount === "number" &&
-    missionSizeTable[saved.playerCount] !== undefined &&
-    typeof saved.roleToggle === "object" && saved.roleToggle !== null &&
-    Array.isArray(saved.missionSizes) &&
-    typeof saved.currentMission === "number" &&
-    Array.isArray(saved.missionResults) &&
-    typeof saved.leaderIndex === "number" &&
-    typeof saved.rejectStreak === "number" &&
-    Array.isArray(saved.launchLog) &&
-    Array.isArray(saved.pickedTeam) &&
-    typeof saved.notes === "string" &&
-    typeof saved.finished === "boolean"
+  if (!isRecord(value) || !isIntegerBetween(value.playerCount, 5, 10)) return false;
+  const playerCount = value.playerCount;
+  const expectedMissionSizes = missionSizeTable[playerCount];
+  const roleToggle = value.roleToggle;
+  const validRoleToggle = isRecord(roleToggle) && roleKeys.every((key) => typeof roleToggle[key] === "boolean");
+  const validIdentityEvents = value.identityTagEvents === undefined || (
+    Array.isArray(value.identityTagEvents) &&
+    value.identityTagEvents.length <= 50 &&
+    value.identityTagEvents.every((event) => isIdentityTagEvent(event, playerCount))
   );
+  const validLegacyIdentityTags = value.identityTags === undefined || (
+    isRecord(value.identityTags) &&
+    Object.entries(value.identityTags).every(([seat, tag]) => (
+      isSeat(Number(seat), playerCount) && isIdentityTag(tag)
+    ))
+  );
+  const validSeatLayout = value.seatLayout === undefined || isSeatLayout(value.seatLayout, playerCount);
+
+  return validRoleToggle &&
+    Array.isArray(value.missionSizes) &&
+    value.missionSizes.length === 5 &&
+    value.missionSizes.every((size, index) => size === expectedMissionSizes[index]) &&
+    isIntegerBetween(value.currentMission, 0, 4) &&
+    Array.isArray(value.missionResults) &&
+    value.missionResults.length === 5 &&
+    value.missionResults.every(isMissionResult) &&
+    isIntegerBetween(value.leaderIndex, 0, playerCount - 1) &&
+    isIntegerBetween(value.rejectStreak, 0, 5) &&
+    Array.isArray(value.launchLog) &&
+    value.launchLog.length <= maxLaunchLogs &&
+    value.launchLog.every((log) => isLaunchLog(log, playerCount)) &&
+    (value.phase === "team" || value.phase === "vote" || value.phase === "mission") &&
+    isSeatList(value.pickedTeam, playerCount) &&
+    isVotes(value.votes, playerCount) &&
+    isIntegerBetween(value.missionFailVotes, 0, playerCount) &&
+    validLegacyIdentityTags &&
+    validIdentityEvents &&
+    validSeatLayout &&
+    typeof value.notes === "string" && value.notes.length <= maxNotesLength &&
+    typeof value.finished === "boolean" &&
+    (value.winner === null || value.winner === "blue" || value.winner === "red") &&
+    (value.awaitingAssassination === undefined || typeof value.awaitingAssassination === "boolean") &&
+    (value.updatedAt === undefined || (typeof value.updatedAt === "number" && Number.isFinite(value.updatedAt)));
 }
 
 export function normalizeState(saved: GameState): GameState {
@@ -263,6 +387,124 @@ export function completeMissionLaunch(current: GameState, result: "good" | "bad"
       fails: current.missionFailVotes
     } : log)
   };
+}
+
+/**
+ * 产品需求 #34：现场来不及逐项记录时，整轮只保留“任务成功 / 失败”。
+ * 当前任务已有的临时组队或投票记录会被替换，避免回顾页展示不完整详情。
+ */
+export function recordMissionResultOnly(current: GameState, result: "good" | "bad") {
+  const missionNo = current.currentMission + 1;
+  const minimalLog: LaunchLog = {
+    missionNo,
+    round: Math.min(5, current.rejectStreak + 1),
+    leaderSeat: current.leaderIndex + 1,
+    team: [],
+    votes: {},
+    passed: true,
+    missionResult: result,
+    fails: result === "bad" ? failsNeeded(current.playerCount, current.currentMission) : 0,
+    resultOnly: true
+  };
+
+  return {
+    ...current,
+    launchLog: [
+      ...current.launchLog.filter((log) => log.missionNo !== missionNo),
+      minimalLog
+    ]
+  };
+}
+
+function deriveOutcome(current: GameState, missionResults: MissionResult[]): GameState {
+  const goodWins = missionResults.filter((result) => result === "good").length;
+  const badWins = missionResults.filter((result) => result === "bad").length;
+
+  if (badWins >= 3) {
+    return {
+      ...current,
+      missionResults,
+      finished: true,
+      winner: "red",
+      awaitingAssassination: false
+    };
+  }
+
+  if (goodWins >= 3) {
+    if (current.roleToggle.assassin) {
+      return {
+        ...current,
+        missionResults,
+        finished: false,
+        winner: null,
+        awaitingAssassination: true
+      };
+    }
+    return {
+      ...current,
+      missionResults,
+      finished: true,
+      winner: "blue",
+      awaitingAssassination: false
+    };
+  }
+
+  const firstPendingMission = missionResults.findIndex((result) => result === null);
+  return {
+    ...current,
+    missionResults,
+    currentMission: firstPendingMission >= 0 ? firstPendingMission : current.currentMission,
+    finished: false,
+    winner: null,
+    awaitingAssassination: false
+  };
+}
+
+/**
+ * 产品需求 #33：在回顾页修正某轮的任务结果与最终通过组队的投票。
+ * 这里只更新历史记录，不回退 currentMission、phase、当前组队或当前投票状态。
+ */
+export function editMissionRecord(
+  current: GameState,
+  missionIndex: number,
+  result: "good" | "bad",
+  votes?: Record<number, Vote>
+) {
+  if (missionIndex < 0 || missionIndex >= current.missionResults.length) return current;
+
+  const missionResults = current.missionResults.map((value, index) => index === missionIndex ? result : value);
+  const missionNo = missionIndex + 1;
+  const launchIndex = current.launchLog.findLastIndex((log) => log.missionNo === missionNo && Boolean(log.missionResult));
+  const fallbackLog: LaunchLog = {
+    missionNo,
+    round: 1,
+    leaderSeat: current.leaderIndex + 1,
+    team: [],
+    votes: {},
+    passed: true,
+    missionResult: result,
+    fails: result === "bad" ? failsNeeded(current.playerCount, missionIndex) : 0,
+    resultOnly: true
+  };
+  const launchLog = launchIndex >= 0
+    ? current.launchLog.map((log, index) => index === launchIndex ? {
+      ...log,
+      votes: !log.resultOnly && votes ? { ...votes } : log.votes,
+      missionResult: result,
+      fails: log.resultOnly
+        ? (result === "bad" ? failsNeeded(current.playerCount, missionIndex) : 0)
+        : result === "good"
+          ? 0
+          : Math.max(log.fails, failsNeeded(current.playerCount, missionIndex))
+    } : log)
+    : [...current.launchLog, fallbackLog];
+
+  return deriveOutcome({ ...current, launchLog }, missionResults);
+}
+
+/** 向后兼容：仅修改任务结果。 */
+export function editMissionResult(current: GameState, missionIndex: number, result: "good" | "bad") {
+  return editMissionRecord(current, missionIndex, result);
 }
 
 export function finalizeMission(current: GameState, result: "good" | "bad") {
