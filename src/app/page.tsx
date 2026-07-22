@@ -14,6 +14,7 @@ import {
   appendHistory,
   completeMissionLaunch,
   defaultConfig,
+  editLaunchRecord,
   editMissionRecord,
   effectiveIdentityTags,
   failsNeeded,
@@ -314,6 +315,10 @@ export default function Home() {
     setViewMissionIndex(null);
   }
 
+  function changeLaunchRecord(missionIndex: number, round: number, team: number[], votes: Record<number, Vote>) {
+    updateState((cur) => editLaunchRecord(cur, missionIndex, round, team, votes));
+  }
+
   const currentSize = state ? state.missionSizes[state.currentMission] : 0;
   const leaderSeat = state ? state.leaderIndex + 1 : 1;
   const activeScreen = state?.awaitingAssassination && screen === "record"
@@ -550,7 +555,7 @@ export default function Home() {
                     onChangeRecord={changeMissionRecord}
                   />
                 )}
-                <LaunchHistory state={state} missionIndex={displayedMissionIndex} />
+                <LaunchHistory state={state} missionIndex={displayedMissionIndex} onEditLaunch={changeLaunchRecord} />
                 {isLiveMissionView && (
                   <div className="quick-record-footer">
                     <button
