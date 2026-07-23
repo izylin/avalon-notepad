@@ -372,6 +372,29 @@ export function logLaunch(current: GameState, info: { passed: boolean; missionRe
   };
 }
 
+
+export function editLaunchRecord(
+  current: GameState,
+  missionIndex: number,
+  round: number,
+  team: number[],
+  votes: Record<number, Vote>
+) {
+  const missionNo = missionIndex + 1;
+  const agree = Object.values(votes).filter((vote) => vote === "agree").length;
+  const reject = Object.values(votes).filter((vote) => vote === "reject").length;
+  const passed = agree > reject;
+
+  return {
+    ...current,
+    launchLog: current.launchLog.map((log) =>
+      log.missionNo === missionNo && log.round === round && !log.resultOnly
+        ? { ...log, team: [...team].sort((a, b) => a - b), votes: { ...votes }, passed }
+        : log
+    )
+  };
+}
+
 export function completeMissionLaunch(current: GameState, result: "good" | "bad") {
   const missionNo = current.currentMission + 1;
   const launchIndex = current.launchLog.findLastIndex((log) => log.missionNo === missionNo && log.passed);
