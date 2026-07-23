@@ -1,8 +1,4 @@
-import type { Vote } from "@/lib/game";
-
-function seatLabel(seat: number) {
-  return seat === 1 ? "我" : `${seat}号`;
-}
+import { formatSeatLabel, type SeatNames, type Vote } from "@/lib/game";
 
 function voteLabel(vote?: Vote) {
   if (vote === "agree") return "赞成";
@@ -13,12 +9,17 @@ function voteLabel(vote?: Vote) {
 export function VoteResultGraphic({
   votes,
   playerCount,
-  passed
+  passed,
+  selfSeat = 1,
+  seatNames = {}
 }: {
   votes: Record<number, Vote>;
   playerCount: number;
   passed: boolean;
+  selfSeat?: number;
+  seatNames?: SeatNames;
 }) {
+  const seatLabel = (seat: number) => formatSeatLabel(seat, selfSeat, seatNames);
   const seats = Array.from({ length: playerCount }, (_, index) => index + 1);
   const agreeSeats = seats.filter((seat) => votes[seat] === "agree");
   const rejectSeats = seats.filter((seat) => votes[seat] === "reject");

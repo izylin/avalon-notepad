@@ -1447,3 +1447,14 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
 .launch-edit-save { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .launch-edit-save .ghost-btn, .launch-edit-save .primary-btn { min-width: 86px; padding: 9px 12px; }
 @media (max-width: 560px) { .launch-edit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .launch-head { align-items: flex-start; } .launch-head-actions { flex-direction: column; align-items: flex-end; } }
+
+.seat-name-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.seat-name-field { display: grid; gap: 5px; padding: 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.seat-name-field.self { border-color: var(--gold-bright); background: color-mix(in srgb, var(--gold) 12%, var(--panel)); }
+.seat-name-field span { color: var(--muted); font-size: 11px; font-weight: 700; }
+.seat-name-field input { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px 9px; background: var(--panel-raised); color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; text-align: center; outline: none; }
+.seat-name-field input:focus { border-color: var(--gold-bright); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold-bright) 24%, transparent); }
+@media (max-width: 560px) { .seat-name-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.seat-name-field.invalid { border-color: rgba(207, 92, 83, .7); background: rgba(207, 92, 83, .07); }
+.seat-name-field.invalid input { border-color: rgba(207, 92, 83, .75); color: var(--red); }
