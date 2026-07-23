@@ -14,6 +14,7 @@ export type IdentityTagEvent = {
 
 export type SeatPoint = { x: number; y: number };
 export type SeatLayout = Record<number, SeatPoint>;
+export type SeatNames = Record<number, string>;
 
 export type LaunchLog = {
   missionNo: number;
@@ -35,6 +36,8 @@ export type GameState = {
   currentMission: number;
   missionResults: MissionResult[];
   leaderIndex: number;
+  selfSeat: number;
+  seatNames?: SeatNames;
   rejectStreak: number;
   launchLog: LaunchLog[];
   phase: Phase;
@@ -67,6 +70,18 @@ export type HistoryEntry = {
   missionResults: MissionResult[];
   finishedAt: number;
 };
+
+export function isValidSeatName(name: string) {
+  const trimmed = name.trim();
+  return trimmed.length === 0 || /^[\p{Script=Han}]{1,2}$/u.test(trimmed) || /^[A-Za-z]{1,5}$/.test(trimmed);
+}
+
+export function formatSeatLabel(seat: number, selfSeat = 1, seatNames: SeatNames = {}, numericSuffix = true) {
+  const customName = seatNames[seat]?.trim();
+  if (customName && isValidSeatName(customName)) return customName;
+  if (seat === selfSeat) return "我";
+  return numericSuffix ? `${seat}号` : `${seat}`;
+}
 
 export const missionSizeTable: Record<number, number[]> = {
   5: [2, 3, 2, 3, 3],
@@ -174,6 +189,18 @@ function isSeatLayout(value: unknown, playerCount: number): value is SeatLayout 
     entries.every(([seat, point]) => isSeat(Number(seat), playerCount) && isSeatPoint(point));
 }
 
+function isSeatNames(value: unknown, playerCount: number): value is SeatNames {
+  if (!isRecord(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length <= playerCount &&
+    entries.every(([seat, name]) => (
+      isSeat(Number(seat), playerCount) &&
+      typeof name === "string" &&
+      name.trim().length > 0 &&
+      isValidSeatName(name)
+    ));
+}
+
 function isHistoryEntry(value: unknown): value is HistoryEntry {
   if (!isRecord(value)) return false;
   return typeof value.id === "string" &&
@@ -198,7 +225,7 @@ export function togglesFor(playerCount: number): Record<RoleKey, boolean> {
   }, {} as Record<RoleKey, boolean>);
 }
 
-export function freshState(playerCount: number, roleToggle = togglesFor(playerCount), leaderSeat = 1): GameState {
+export function freshState(playerCount: number, roleToggle = togglesFor(playerCount), leaderSeat = 1, selfSeat = 1, seatNames: SeatNames = {}): GameState {
   return {
     playerCount,
     roleToggle,
@@ -206,6 +233,8 @@ export function freshState(playerCount: number, roleToggle = togglesFor(playerCo
     currentMission: 0,
     missionResults: [null, null, null, null, null],
     leaderIndex: leaderSeat - 1,
+    selfSeat,
+    seatNames,
     rejectStreak: 0,
     launchLog: [],
     phase: "team",
@@ -299,6 +328,8 @@ export function isSavedGameState(value: unknown): value is GameState {
     ))
   );
   const validSeatLayout = value.seatLayout === undefined || isSeatLayout(value.seatLayout, playerCount);
+  const validSelfSeat = value.selfSeat === undefined || isSeat(value.selfSeat, playerCount);
+  const validSeatNames = value.seatNames === undefined || isSeatNames(value.seatNames, playerCount);
 
   return validRoleToggle &&
     Array.isArray(value.missionSizes) &&
@@ -309,6 +340,8 @@ export function isSavedGameState(value: unknown): value is GameState {
     value.missionResults.length === 5 &&
     value.missionResults.every(isMissionResult) &&
     isIntegerBetween(value.leaderIndex, 0, playerCount - 1) &&
+    validSelfSeat &&
+    validSeatNames &&
     isIntegerBetween(value.rejectStreak, 0, 5) &&
     Array.isArray(value.launchLog) &&
     value.launchLog.length <= maxLaunchLogs &&
@@ -335,6 +368,8 @@ export function normalizeState(saved: GameState): GameState {
   }));
   return {
     ...saved,
+    selfSeat: saved.selfSeat ?? 1,
+    seatNames: saved.seatNames ?? {},
     identityTagEvents: saved.identityTagEvents ?? legacyTagEvents,
     awaitingAssassination: saved.awaitingAssassination ?? false
   };

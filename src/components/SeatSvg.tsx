@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { seatCanvas, type IdentityTag, type SeatLayout, type SeatPoint, type Vote } from "@/lib/game";
+import { formatSeatLabel, seatCanvas, type IdentityTag, type SeatLayout, type SeatNames, type SeatPoint, type Vote } from "@/lib/game";
 
 const longPressMs = 400;
 // 长按判定期内允许的手指抖动；超过即视为滑动页面。
@@ -78,8 +78,8 @@ function seatPositions(n: number, cx = 172, cy = 150, rx = 98, ry = 76) {
   return positions;
 }
 
-function seatRadius(seat: number) {
-  return seat === 1 ? 26 : 24;
+function seatRadius(seat: number, selfSeat = 1) {
+  return seat === selfSeat ? 26 : 24;
 }
 
 function toSvgPoint(svg: SVGSVGElement | null, source: { clientX: number; clientY: number }): SeatPoint | null {
@@ -90,8 +90,8 @@ function toSvgPoint(svg: SVGSVGElement | null, source: { clientX: number; client
 }
 
 // 座位连同外圈身份光环整体留在画布内，否则拖到边缘会被 viewBox 裁掉。
-function clampToCanvas(point: SeatPoint, seat: number): SeatPoint {
-  const margin = seatRadius(seat) + 11;
+function clampToCanvas(point: SeatPoint, seat: number, selfSeat = 1): SeatPoint {
+  const margin = seatRadius(seat, selfSeat) + 11;
   return {
     x: Math.min(Math.max(point.x, margin), seatCanvas.width - margin),
     y: Math.min(Math.max(point.y, margin), seatCanvas.height - margin)
@@ -104,6 +104,8 @@ export function SeatSvg({
   teamSeats,
   voteMap = {},
   identityTags = {},
+  selfSeat = 1,
+  seatNames = {},
   onSeatClick,
   captionTop,
   captionBottom,
@@ -117,6 +119,8 @@ export function SeatSvg({
   teamSeats: number[];
   voteMap?: Record<number, Vote>;
   identityTags?: Record<number, IdentityTag>;
+  selfSeat?: number;
+  seatNames?: SeatNames;
   onSeatClick?: (seat: number) => void;
   captionTop: string;
   captionBottom: string;
@@ -165,14 +169,14 @@ export function SeatSvg({
   function startDrag(seat: number, source: { clientX: number; clientY: number }) {
     const point = toSvgPoint(svgRef.current, source);
     if (!point) return;
-    const first = { seat, point: clampToCanvas(point, seat) };
+    const first = { seat, point: clampToCanvas(point, seat, selfSeat) };
     dragRef.current = first;
     setDrag(first);
 
     function onMove(event: PointerEvent) {
       const moved = toSvgPoint(svgRef.current, event);
       if (!moved) return;
-      const next = { seat, point: clampToCanvas(moved, seat) };
+      const next = { seat, point: clampToCanvas(moved, seat, selfSeat) };
       dragRef.current = next;
       setDrag(next);
     }
@@ -263,7 +267,7 @@ export function SeatSvg({
           })}
           {Array.from({ length: n }, (_, i) => i + 1).map((seat) => {
             const p = pos[seat];
-            const r = seatRadius(seat);
+            const r = seatRadius(seat, selfSeat);
             return (
               <mask key={seat} id={`${svgId}-role-ring-${seat}`}>
                 <rect width={seatCanvas.width} height={seatCanvas.height} fill="black" />
@@ -282,14 +286,15 @@ export function SeatSvg({
         <text fontSize="11" x="172" y="159" textAnchor="middle" fill="var(--muted)">{captionBottom}</text>
         {Array.from({ length: n }, (_, i) => i + 1).map((seat) => {
           const p = pos[seat];
-          const isMe = seat === 1;
+          const isMe = seat === selfSeat;
+          const label = formatSeatLabel(seat, selfSeat, seatNames, false);
           const onTeam = teamSeats.includes(seat);
           const isLeader = seat === leaderSeat;
           const tag = identityTags[seat];
           const vote = voteMap[seat];
           // 编辑座位图时不接受点击，否则拖动会顺带改掉上车名单或投票。
           const clickable = Boolean(onSeatClick) && !editing;
-          const r = seatRadius(seat);
+          const r = seatRadius(seat, selfSeat);
           const fill = vote === "agree" ? "var(--blue)" : vote === "reject" ? "var(--red)" : onTeam ? "var(--gold)" : "var(--panel-raised)";
           const stroke = vote ? "var(--gold-bright)" : onTeam ? "var(--gold-bright)" : isMe ? "var(--muted)" : "var(--line)";
           const textFill = vote || onTeam ? "var(--gold-ink)" : "var(--muted)";
@@ -341,7 +346,7 @@ export function SeatSvg({
                   <circle cx={p.x} cy={p.y} r={r + 8} fill="none" stroke="var(--gold-bright)" strokeWidth="2" />
                 )
               ) : null}
-              <text fontSize={isMe ? 13 : 15} fontWeight="700" x={p.x} y={p.y + 5} textAnchor="middle" fill={textFill}>{isMe ? "我" : seat}</text>
+              <text fontSize={label.length > 1 ? 12 : isMe ? 13 : 15} fontWeight="700" x={p.x} y={p.y + 5} textAnchor="middle" fill={textFill}>{label}</text>
               {isLeader ? <text fontSize="11" fontWeight="700" x={p.x} y={p.y + r + 19} textAnchor="middle" fill="var(--red)">队长</text> : null}
             </g>
           );

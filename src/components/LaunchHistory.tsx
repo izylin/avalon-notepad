@@ -1,12 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { missionLogsFor, type GameState, type Vote } from "@/lib/game";
+import { formatSeatLabel, missionLogsFor, type GameState, type Vote } from "@/lib/game";
 import { VoteResultGraphic } from "./VoteResultGraphic";
-
-function seatLabel(seat: number) {
-  return seat === 1 ? "我" : `${seat}号`;
-}
 
 export function LaunchHistory({
   state,
@@ -24,6 +20,7 @@ export function LaunchHistory({
 
   if (!logs.length) return null;
   const seats = Array.from({ length: state.playerCount }, (_, index) => index + 1);
+  const seatLabel = (seat: number) => formatSeatLabel(seat, state.selfSeat, state.seatNames);
 
   function beginEdit(log: (typeof logs)[number]) {
     setEditingRound(log.round);
@@ -68,7 +65,7 @@ export function LaunchHistory({
                 )}
               </div>
             </div>
-            {!log.resultOnly && <VoteResultGraphic votes={log.votes} playerCount={state.playerCount} passed={log.passed} />}
+            {!log.resultOnly && <VoteResultGraphic votes={log.votes} playerCount={state.playerCount} passed={log.passed} selfSeat={state.selfSeat} seatNames={state.seatNames} />}
             {editing && (
               <div className="launch-edit-panel">
                 <div className="launch-edit-section">

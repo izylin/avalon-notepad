@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { effectiveIdentityTags, missionCardClass, missionLogsFor, type GameState, type Vote } from "@/lib/game";
+import { effectiveIdentityTags, formatSeatLabel, missionCardClass, missionLogsFor, type GameState, type Vote } from "@/lib/game";
 import { SeatSvg } from "./SeatSvg";
 import { VoteResultGraphic } from "./VoteResultGraphic";
-
-function seatLabel(seat: number) {
-  return seat === 1 ? "我" : `${seat}号`;
-}
 
 function voteLabel(vote?: Vote) {
   if (vote === "agree") return "赞成";
@@ -31,7 +27,8 @@ export function MissionReview({
   const logs = missionLogsFor(state, missionIndex);
   const finalLog = logs.slice().reverse().find((log) => log.missionResult) ?? logs.at(-1);
   const result = state.missionResults[missionIndex];
-  const leaderText = finalLog ? finalLog.leaderSeat === 1 ? "我" : `${finalLog.leaderSeat}号` : "";
+  const seatLabel = (seat: number, numericSuffix = true) => formatSeatLabel(seat, state.selfSeat, state.seatNames, numericSuffix);
+  const leaderText = finalLog ? seatLabel(finalLog.leaderSeat) : "";
   const failText = finalLog?.missionResult ? `失败票 ${finalLog.fails} 张，成功票 ${Math.max(0, finalLog.team.length - finalLog.fails)} 张` : "暂无任务结算记录";
   const canEdit = Boolean(result && onChangeRecord);
   const canEditVotes = Boolean(finalLog && !finalLog.resultOnly);
@@ -165,15 +162,17 @@ export function MissionReview({
           <SeatSvg
             n={state.playerCount}
             leaderSeat={finalLog.leaderSeat}
+            selfSeat={state.selfSeat}
+            seatNames={state.seatNames}
             teamSeats={finalLog.team}
             voteMap={finalLog.votes}
             identityTags={effectiveIdentityTags(state, missionIndex)}
             captionTop={`队长 ${leaderText}`}
-            captionBottom={`上车 ${finalLog.team.map((s) => s === 1 ? "我" : s).join(",")}`}
+            captionBottom={`上车 ${finalLog.team.map((s) => seatLabel(s, false)).join(",")}`}
           />
-          <VoteResultGraphic votes={finalLog.votes} playerCount={state.playerCount} passed={finalLog.passed} />
+          <VoteResultGraphic votes={finalLog.votes} playerCount={state.playerCount} passed={finalLog.passed} selfSeat={state.selfSeat} seatNames={state.seatNames} />
           <div className="mission-table">
-            <div className="mission-table-row"><span>队伍</span><strong>{finalLog.team.map((s) => s === 1 ? "我" : `${s}号`).join("、")}</strong></div>
+            <div className="mission-table-row"><span>队伍</span><strong>{finalLog.team.map((s) => seatLabel(s)).join("、")}</strong></div>
             <div className="mission-table-row"><span>任务牌</span><strong>{failText}</strong></div>
           </div>
         </>

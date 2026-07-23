@@ -1,4 +1,4 @@
-import { roleKeys, roles, type GameState, type IdentityTag } from "@/lib/game";
+import { formatSeatLabel, roleKeys, roles, type GameState, type IdentityTag } from "@/lib/game";
 
 function RoleSymbol({ role }: { role: IdentityTag }) {
   return (
@@ -58,7 +58,7 @@ export function IdentityTagsPanel({
   const taggedSeatsByRole = enabledRoles.reduce<Record<string, string>>((acc, key) => {
     const seats = Object.entries(activeTags)
       .filter(([, tag]) => tag === key)
-      .map(([seat]) => seat === "1" ? "我" : seat);
+      .map(([seat]) => formatSeatLabel(Number(seat), state.selfSeat, state.seatNames, false));
     if (seats.length) acc[key] = seats.join(",");
     return acc;
   }, {});
