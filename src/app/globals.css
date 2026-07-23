@@ -1273,12 +1273,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
-  padding: 12px;
-  border: 1px solid var(--line-gold);
-  border-radius: var(--radius);
-  background: var(--panel-raised);
 }
-.quick-record-panel p { margin: 0; }
 .danger-primary {
   background: linear-gradient(180deg, #d97068, #b94f48);
   border-color: rgba(255, 205, 200, .35);
@@ -1436,3 +1431,19 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   .mission-vote-edit-card strong { text-align: center; }
   .mission-edit-save-actions > button { flex: 1; }
 }
+
+.launch-head-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.launch-edit-btn { border: 0; background: transparent; color: var(--gold); font-size: 12px; font-weight: 700; padding: 4px 2px; cursor: pointer; }
+.launch-edit-btn:hover { text-decoration: underline; }
+.launch-edit-panel { margin: 10px 12px 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-raised); }
+.launch-edit-section + .launch-edit-section { margin-top: 14px; }
+.launch-edit-section > strong { display: block; color: var(--ink); font-size: 13px; }
+.launch-edit-section > span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+.launch-edit-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.launch-edit-grid button { min-height: 34px; padding: 6px 4px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--muted); font-size: 11px; cursor: pointer; }
+.launch-edit-grid button.selected, .launch-edit-grid button.agree { border-color: rgba(82, 155, 219, .65); background: rgba(82, 155, 219, .14); color: var(--blue); }
+.launch-edit-grid button.reject { border-color: rgba(207, 92, 83, .45); background: rgba(207, 92, 83, .09); color: var(--red); }
+.launch-edit-warning { margin: 10px 0 0; color: var(--red); font-size: 11px; line-height: 1.5; }
+.launch-edit-save { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.launch-edit-save .ghost-btn, .launch-edit-save .primary-btn { min-width: 86px; padding: 9px 12px; }
+@media (max-width: 560px) { .launch-edit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .launch-head { align-items: flex-start; } .launch-head-actions { flex-direction: column; align-items: flex-end; } }
