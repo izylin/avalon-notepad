@@ -375,13 +375,54 @@ export function normalizeState(saved: GameState): GameState {
   };
 }
 
-export function effectiveIdentityTags(state: GameState, missionIndex: number): Record<number, IdentityTag> {
-  return (state.identityTagEvents ?? []).reduce<Record<number, IdentityTag>>((tags, event) => {
+export const maxIdentityTagsPerSeat = 3;
+
+export function effectiveIdentityTags(state: GameState, missionIndex: number): Record<number, IdentityTag[]> {
+  return (state.identityTagEvents ?? []).reduce<Record<number, IdentityTag[]>>((tags, event) => {
     if (event.startMission <= missionIndex && (event.endMission === undefined || missionIndex < event.endMission)) {
-      tags[event.seat] = event.tag;
+      const seatTags = tags[event.seat] ?? (tags[event.seat] = []);
+      if (!seatTags.includes(event.tag)) seatTags.push(event.tag);
     }
     return tags;
   }, {});
+}
+
+function activeIdentityEventIndex(events: IdentityTagEvent[], seat: number, tag: IdentityTag, missionIndex: number) {
+  return events.findLastIndex((event) => (
+    event.seat === seat &&
+    event.tag === tag &&
+    event.startMission <= missionIndex &&
+    (event.endMission === undefined || missionIndex < event.endMission)
+  ));
+}
+
+export function assignIdentityTag(current: GameState, seat: number, tag: IdentityTag): { state: GameState; ok: boolean } {
+  const missionIndex = current.currentMission;
+  const events = current.identityTagEvents ?? [];
+  if (activeIdentityEventIndex(events, seat, tag, missionIndex) >= 0) return { state: current, ok: true };
+
+  const activeCount = events.filter((event) => (
+    event.seat === seat &&
+    event.startMission <= missionIndex &&
+    (event.endMission === undefined || missionIndex < event.endMission)
+  )).length;
+  if (activeCount >= maxIdentityTagsPerSeat) return { state: current, ok: false };
+
+  return {
+    state: { ...current, identityTagEvents: [...events, { seat, tag, startMission: missionIndex }] },
+    ok: true
+  };
+}
+
+export function unassignIdentityTag(current: GameState, seat: number, tag: IdentityTag): GameState {
+  const missionIndex = current.currentMission;
+  const events = current.identityTagEvents ?? [];
+  const index = activeIdentityEventIndex(events, seat, tag, missionIndex);
+  if (index < 0) return current;
+
+  const identityTagEvents = [...events];
+  identityTagEvents[index] = { ...identityTagEvents[index], endMission: missionIndex };
+  return { ...current, identityTagEvents };
 }
 
 export function missionCardClass(result: MissionResult) {

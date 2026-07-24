@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { IdentityTagsPanel } from "@/components/IdentityTagsPanel";
@@ -12,6 +13,7 @@ import { TutorialGuide, type TutorialStep } from "@/components/TutorialGuide";
 import {
   allAgreeVotes,
   appendHistory,
+  assignIdentityTag,
   completeMissionLaunch,
   defaultConfig,
   editLaunchRecord,
@@ -37,6 +39,7 @@ import {
   storageKey,
   themeStorageKey,
   togglesFor,
+  unassignIdentityTag,
   type GameState,
   type HistoryEntry,
   type IdentityTag,
@@ -49,6 +52,15 @@ import {
 } from "@/lib/game";
 
 const tourStorageKey = "avalon_note_tour_v1";
+
+type TagDragState = {
+  tag: IdentityTag;
+  from: number | "rail";
+  x: number;
+  y: number;
+  overSeat: number | null;
+  rejected: boolean;
+};
 
 function normalizeSeatNameInput(value: string) {
   return value.trim().slice(0, 12);
@@ -132,7 +144,7 @@ export default function Home() {
   const [state, setState] = useState<GameState | null>(null);
   const [showSave, setShowSave] = useState(false);
   const [viewMissionIndex, setViewMissionIndex] = useState<number | null>(null);
-  const [selectedIdentityTag, setSelectedIdentityTag] = useState<IdentityTag | null>(null);
+  const [tagDrag, setTagDrag] = useState<TagDragState | null>(null);
   const [editingSeats, setEditingSeats] = useState(false);
   const [savedSummary, setSavedSummary] = useState<SaveSummary | null>(null);
   const [historyStats, setHistoryStats] = useState<{ total: number; blue: number; red: number; recent: HistoryEntry[] } | null>(null);
@@ -247,31 +259,52 @@ export default function Home() {
     });
   }
 
-  function toggleIdentityTag(seat: number, tag: IdentityTag) {
-    updateState((cur) => {
-      const missionIndex = cur.currentMission;
-      const identityTagEvents = [...(cur.identityTagEvents ?? [])];
-      const activeAtMission = (event: { startMission: number; endMission?: number }) => (
-        event.startMission <= missionIndex &&
-        (event.endMission === undefined || missionIndex < event.endMission)
-      );
-      const activeIndex = identityTagEvents.findLastIndex((event) => (
-        event.seat === seat && event.tag === tag && activeAtMission(event)
-      ));
+  function startTagDrag(tag: IdentityTag, from: number | "rail", event: React.PointerEvent) {
+    setTagDrag({ tag, from, x: event.clientX, y: event.clientY, overSeat: null, rejected: false });
 
-      if (activeIndex >= 0) {
-        identityTagEvents[activeIndex] = { ...identityTagEvents[activeIndex], endMission: missionIndex };
-      } else {
-        identityTagEvents.forEach((event, index) => {
-          if (event.seat === seat && activeAtMission(event)) {
-            identityTagEvents[index] = { ...event, endMission: missionIndex };
-          }
-        });
-        identityTagEvents.push({ seat, tag, startMission: missionIndex });
+    function onMove(moveEvent: PointerEvent) {
+      moveEvent.preventDefault();
+      setTagDrag((cur) => (cur ? { ...cur, x: moveEvent.clientX, y: moveEvent.clientY } : cur));
+    }
+    function onEnd() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      finishTagDrag();
+    }
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+  }
+
+  function finishTagDrag() {
+    setTagDrag((active) => {
+      if (!active) return null;
+      const { tag, from, overSeat } = active;
+
+      if (overSeat == null) {
+        if (typeof from === "number") updateState((cur) => unassignIdentityTag(cur, from, tag));
+        return null;
       }
 
-      return { ...cur, identityTagEvents };
+      if (state) {
+        const { ok } = assignIdentityTag(state, overSeat, tag);
+        if (!ok) {
+          window.setTimeout(() => setTagDrag(null), 260);
+          return { ...active, rejected: true };
+        }
+      }
+
+      updateState((cur) => {
+        const { state: assigned } = assignIdentityTag(cur, overSeat, tag);
+        return typeof from === "number" && from !== overSeat ? unassignIdentityTag(assigned, from, tag) : assigned;
+      });
+      return null;
     });
+  }
+
+  function handleSnapSeatChange(seat: number | null) {
+    setTagDrag((cur) => (cur ? { ...cur, overSeat: seat } : cur));
   }
 
   function moveSeat(seat: number, point: SeatPoint) {
@@ -284,14 +317,6 @@ export default function Home() {
       delete next.seatLayout;
       return next;
     });
-  }
-
-  function handleSeatWithIdentityFallback(seat: number, fallback: (seat: number) => void) {
-    if (selectedIdentityTag) {
-      toggleIdentityTag(seat, selectedIdentityTag);
-      return;
-    }
-    fallback(seat);
   }
 
   function beginGame() {
@@ -360,6 +385,7 @@ export default function Home() {
   const displayedMissionIndex = state ? Math.min(viewMissionIndex ?? state.currentMission, state.missionResults.length - 1) : 0;
   const isLiveMissionView = state ? displayedMissionIndex === state.currentMission && !state.finished : false;
   const displayedIdentityTags = state ? effectiveIdentityTags(state, displayedMissionIndex) : {};
+  const tagDragScreenPoint = tagDrag ? { x: tagDrag.x, y: tagDrag.y } : null;
   const invalidSeatNameSeats = Object.entries(setupSeatNames)
     .filter(([seat, name]) => Number(seat) <= setupCount && name.trim().length > 0 && !isValidSeatName(name))
     .map(([seat]) => Number(seat));
@@ -548,7 +574,7 @@ export default function Home() {
                     <div className="seat-layout-bar">
                       <button
                         className={editingSeats ? "primary-btn seat-layout-btn" : "ghost-btn seat-layout-btn"}
-                        onClick={() => { setEditingSeats((on) => !on); setSelectedIdentityTag(null); }}
+                        onClick={() => setEditingSeats((on) => !on)}
                       >
                         {editingSeats ? "完成编辑" : "编辑座位图"}
                       </button>
@@ -562,8 +588,8 @@ export default function Home() {
                       <h4>第 {state.rejectStreak + 1} 次组队 · {seatLabel(leaderSeat)}队长</h4>
                       <p>需选出 {currentSize} 人组队，当前已选 {state.pickedTeam.length} 人</p>
                       <div className="seat-identity-stage">
-                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg tourTarget="seat-board" selfSeat={state.selfSeat} seatNames={state.seatNames} seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleTeamSeat)} captionTop={`队长 ${seatLabel(leaderSeat)}`} captionBottom={`需上车 ${currentSize} 人`} />
+                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} draggingTag={tagDrag?.from === "rail" ? tagDrag.tag : null} onTagDragStart={(tag, event) => startTagDrag(tag, "rail", event)} />
+                        <SeatSvg tourTarget="seat-board" selfSeat={state.selfSeat} seatNames={state.seatNames} seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={toggleTeamSeat} onTagDragStart={(seat, tag, event) => startTagDrag(tag, seat, event)} dragPoint={tagDragScreenPoint} onSnapSeatChange={handleSnapSeatChange} captionTop={`队长 ${seatLabel(leaderSeat)}`} captionBottom={`需上车 ${currentSize} 人`} />
                       </div>
                       <button className="primary-btn" data-tour="mission-actions" style={{ width: "100%" }} disabled={state.pickedTeam.length !== currentSize} onClick={() => updateState((cur) => cur.rejectStreak >= 4 ? { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "mission", missionFailVotes: 0 } : { ...cur, votes: allAgreeVotes(cur.playerCount), phase: "vote" })}>确认组队{state.rejectStreak >= 4 ? "（强制出发）" : "，进入投票"}</button>
                     </>
@@ -573,8 +599,8 @@ export default function Home() {
                       <h4>第 {state.rejectStreak + 1} 次组队表决</h4>
                       <p>队伍：{state.pickedTeam.map((s) => seatLabel(s)).join("、")}，请记录每位玩家的投票</p>
                       <div className="seat-identity-stage">
-                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg tourTarget="seat-board" selfSeat={state.selfSeat} seatNames={state.seatNames} seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={(seat) => handleSeatWithIdentityFallback(seat, toggleVoteSeat)} captionTop={`队长 ${seatLabel(leaderSeat)}`} captionBottom={`上车 ${state.pickedTeam.map((s) => seatLabel(s, false)).join(",")}`} />
+                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} draggingTag={tagDrag?.from === "rail" ? tagDrag.tag : null} onTagDragStart={(tag, event) => startTagDrag(tag, "rail", event)} />
+                        <SeatSvg tourTarget="seat-board" selfSeat={state.selfSeat} seatNames={state.seatNames} seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} voteMap={state.votes} identityTags={displayedIdentityTags} onSeatClick={toggleVoteSeat} onTagDragStart={(seat, tag, event) => startTagDrag(tag, seat, event)} dragPoint={tagDragScreenPoint} onSnapSeatChange={handleSnapSeatChange} captionTop={`队长 ${seatLabel(leaderSeat)}`} captionBottom={`上车 ${state.pickedTeam.map((s) => seatLabel(s, false)).join(",")}`} />
                       </div>
                       <div className="step-actions" data-tour="mission-actions">
                         <button className="ghost-btn" style={{ flex: 1 }} onClick={() => updateState((cur) => ({ ...cur, phase: "team", votes: {} }))}>返回重选</button>
@@ -593,8 +619,8 @@ export default function Home() {
                       <h4>执行中</h4>
                       <p>上车 {state.pickedTeam.length} 人暗中提交任务牌，请填写本次任务收到的失败票数量。</p>
                       <div className="seat-identity-stage">
-                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} selectedTag={selectedIdentityTag} onSelect={setSelectedIdentityTag} />
-                        <SeatSvg tourTarget="seat-board" selfSeat={state.selfSeat} seatNames={state.seatNames} seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onSeatClick={selectedIdentityTag ? (seat) => toggleIdentityTag(seat, selectedIdentityTag) : undefined} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
+                        <IdentityTagsPanel state={state} activeTags={displayedIdentityTags} draggingTag={tagDrag?.from === "rail" ? tagDrag.tag : null} onTagDragStart={(tag, event) => startTagDrag(tag, "rail", event)} />
+                        <SeatSvg tourTarget="seat-board" selfSeat={state.selfSeat} seatNames={state.seatNames} seatLayout={state.seatLayout} editing={editingSeats} onSeatMove={moveSeat} n={state.playerCount} leaderSeat={leaderSeat} teamSeats={state.pickedTeam} identityTags={displayedIdentityTags} onTagDragStart={(seat, tag, event) => startTagDrag(tag, seat, event)} dragPoint={tagDragScreenPoint} onSnapSeatChange={handleSnapSeatChange} captionTop="上车执行中" captionBottom={`需${failsNeeded(state.playerCount, state.currentMission)}张失败票才算失败`} />
                       </div>
                       <div className="fail-vote-counter">
                         <button className="counter-btn" disabled={state.missionFailVotes <= 0} onClick={() => updateState((cur) => ({ ...cur, missionFailVotes: Math.max(0, cur.missionFailVotes - 1) }))}>－</button>
@@ -700,6 +726,14 @@ export default function Home() {
         </div>
         <p className="footer-note">阿瓦隆笔记本 · Next.js App Router</p>
       </div>
+      {tagDrag && (
+        <div
+          className={`tag-drag-ghost ${tagDrag.overSeat != null ? "over-seat" : ""} ${tagDrag.rejected ? "rejected" : ""}`}
+          style={{ left: tagDrag.x, top: tagDrag.y }}
+        >
+          <Image src={`/roles/${tagDrag.tag}.png`} alt="" width={40} height={40} unoptimized />
+        </div>
+      )}
       <TutorialGuide open={tourOpen && activeScreen === "record"} steps={tutorialSteps} onClose={closeTour} />
       <FeedbackWidget screen={screen} />
     </main>
