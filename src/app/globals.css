@@ -447,43 +447,19 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.role-symbol {
-  width: 34px;
-  height: 34px;
-  overflow: visible;
+.role-portrait {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 0 0 1px rgba(255, 248, 234, .5);
 }
-.symbol-disc {
-  fill: var(--role-glow);
-  stroke: rgba(255, 248, 234, .62);
-  stroke-width: 1.2;
-}
-.symbol-fill { fill: var(--role-ink); opacity: .86; }
-.symbol-line {
-  fill: none;
-  stroke: #fff8ea;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: .82;
-}
-.symbol-accent {
-  fill: var(--role-accent);
-  stroke: var(--role-accent);
-  stroke-width: 1.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.role-merlin { --role-ink: #2f6ea6; --role-glow: #d8ebfb; --role-accent: #78b7e6; }
-.role-percival { --role-ink: #2f7f8e; --role-glow: #d9f0f2; --role-accent: #72c7d1; }
-.role-morgana { --role-ink: #9f1218; --role-glow: #f3b1a8; --role-accent: #df252b; }
-.role-assassin { --role-ink: #b6402d; --role-glow: #f3c7ba; --role-accent: #df6547; }
-.role-mordred { --role-ink: #58428f; --role-glow: #d8d0ee; --role-accent: #8270c9; }
-.role-oberon { --role-ink: #c46a58; --role-glow: #f7dfd8; --role-accent: #e89a86; }
 
 @media (max-width: 420px) {
   .seat-identity-stage { grid-template-columns: 50px minmax(0, 1fr); gap: 6px; }
   .identity-token { width: 42px; height: 40px; }
-  .role-symbol { width: 30px; height: 30px; }
+  .role-portrait { width: 28px; height: 28px; }
 }
 
 .fail-vote-counter { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-raised); margin-bottom: 12px; }
