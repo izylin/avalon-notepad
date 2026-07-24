@@ -4,18 +4,18 @@ import { formatSeatLabel, roleKeys, roles, type GameState, type IdentityTag } fr
 export function IdentityTagsPanel({
   state,
   activeTags,
-  selectedTag,
-  onSelect
+  draggingTag,
+  onTagDragStart
 }: {
   state: GameState;
-  activeTags: Record<number, IdentityTag>;
-  selectedTag: IdentityTag | null;
-  onSelect: (tag: IdentityTag | null) => void;
+  activeTags: Record<number, IdentityTag[]>;
+  draggingTag?: IdentityTag | null;
+  onTagDragStart: (tag: IdentityTag, event: React.PointerEvent) => void;
 }) {
   const enabledRoles = roleKeys.filter((key) => state.roleToggle[key]);
   const taggedSeatsByRole = enabledRoles.reduce<Record<string, string>>((acc, key) => {
     const seats = Object.entries(activeTags)
-      .filter(([, tag]) => tag === key)
+      .filter(([, tags]) => tags.includes(key))
       .map(([seat]) => formatSeatLabel(Number(seat), state.selfSeat, state.seatNames, false));
     if (seats.length) acc[key] = seats.join(",");
     return acc;
@@ -23,16 +23,18 @@ export function IdentityTagsPanel({
 
   return (
     <div className="identity-panel" data-tour="identity-tags">
-      <div className="section-title"><h3>身份标签</h3><span className="tag blue">{selectedTag ? "点击座位标记" : "从当前任务起生效"}</span></div>
-      <div className="identity-rail" aria-label="选择身份标签">
+      <div className="section-title"><h3>身份标签</h3><span className="tag blue">拖到座位上磁吸标记，每位最多 3 个</span></div>
+      <div className="identity-rail" aria-label="拖拽身份标签到座位">
         {enabledRoles.map((key) => (
           <button
             key={key}
             type="button"
-            className={`identity-token ${selectedTag === key ? "selected" : ""} ${taggedSeatsByRole[key] ? "assigned" : ""}`}
-            onClick={() => onSelect(selectedTag === key ? null : key)}
+            className={`identity-token ${draggingTag === key ? "dragging" : ""} ${taggedSeatsByRole[key] ? "assigned" : ""}`}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              onTagDragStart(key, event);
+            }}
             title={roles[key].name}
-            aria-pressed={selectedTag === key}
           >
             <Image className="role-portrait" src={`/roles/${key}.png`} alt="" width={36} height={36} unoptimized />
             <strong>{roles[key].name}</strong>
