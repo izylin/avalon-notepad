@@ -22,7 +22,7 @@ export function MissionPager({
             className={`pager-tab ${result === "good" ? "good-win" : ""} ${result === "bad" ? "bad-win" : ""} ${i === selectedMissionIndex ? "active" : ""}`}
             onClick={() => onSelect(isLiveMission ? null : i)}
           >
-            <strong>任务 {i + 1}</strong>{result === "good" ? "好人成功" : result === "bad" ? "坏人成功" : "未发车"}
+            <strong>{state.missionSizes[i]}人</strong>{result === "good" ? "好人成功" : result === "bad" ? "坏人成功" : "未发车"}
           </button>
         );
       })}
