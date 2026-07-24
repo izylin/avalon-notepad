@@ -406,11 +406,13 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   background: var(--panel-raised);
   color: var(--ink);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+  touch-action: none;
+  cursor: grab;
 }
 .identity-token:hover { border-color: var(--line-gold); filter: brightness(1.05); }
-.identity-token.selected {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(201, 164, 92, .18), inset 0 0 0 1px rgba(201, 164, 92, .25);
+.identity-token.dragging {
+  opacity: .4;
+  cursor: grabbing;
 }
 .identity-token.assigned::after {
   content: "";
@@ -460,6 +462,40 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   .seat-identity-stage { grid-template-columns: 50px minmax(0, 1fr); gap: 6px; }
   .identity-token { width: 42px; height: 40px; }
   .role-portrait { width: 28px; height: 28px; }
+}
+
+.tag-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 2px var(--gold-bright);
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.tag-drag-ghost img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tag-drag-ghost.over-seat {
+  transform: translate(-50%, -50%) scale(1.18);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .4), 0 0 0 3px var(--gold-bright);
+}
+.tag-drag-ghost.rejected {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .4), 0 0 0 3px var(--red);
+  animation: tagDragReject .26s ease;
+}
+
+@keyframes tagDragReject {
+  0%, 100% { transform: translate(-50%, -50%) scale(1.05); }
+  25% { transform: translate(calc(-50% - 6px), -50%) scale(1.05); }
+  75% { transform: translate(calc(-50% + 6px), -50%) scale(1.05); }
+}
+
+.seat-snap-ring { animation: seatSnapPulse 1s ease-in-out infinite; }
+@keyframes seatSnapPulse {
+  0%, 100% { opacity: .55; }
+  50% { opacity: 1; }
 }
 
 .fail-vote-counter { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-raised); margin-bottom: 12px; }
@@ -638,8 +674,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: .02em; }
   transform: translateY(1px) scale(.985);
 }
 
-.pager-tab.active,
-.identity-token.selected {
+.pager-tab.active {
   animation: softPulse .38s ease-out;
 }
 
