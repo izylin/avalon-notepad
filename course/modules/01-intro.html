@@ -1,0 +1,177 @@
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title" data-zh="认识 Avalon Notepad">Meet Avalon Notepad</h1>
+      <p class="module-subtitle" data-zh="一款没有记分本的游戏专属的记分板——以及你轻点座位的那一瞬间发生的一切。">A scorekeeper's clipboard for a game that has none — and what happens the instant you tap a seat.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="它解决的问题">The problem it solves</h2>
+        <p data-zh="《抵抗组织：阿瓦隆》是一款完全面对面、围坐桌前进行的社交推理桌游，全程不需要任何屏幕——直到有人需要回忆三轮之前谁投了什么票。这就是 Avalon Notepad 要填补的空白。"><em>The Resistance: Avalon</em> is a social deduction board game played entirely face-to-face, around a table, with no screens involved — until someone needs to remember who voted what three rounds ago. That's the gap Avalon Notepad fills.</p>
+        <div class="icon-rows stagger-children">
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🪑</div>
+            <div data-zh="<strong>在牌桌旁实时使用</strong><p>一名玩家用手机运行它，其他人则用实体卡牌进行游戏——它从不掌控游戏，只负责记录。</p>"><strong>Live at the table</strong><p>One player runs it on their phone while everyone else plays with physical cards — it never controls the game, only records it.</p></div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🧠</div>
+            <div data-zh="<strong>是记忆辅助工具，不是规则裁判</strong><p>它记录队伍、投票和任务结果，让玩家可以回顾&ldquo;等等，第二轮是谁提的队？&rdquo;，而不必全靠记忆。</p>"><strong>A memory aid, not a rulebook enforcer</strong><p>It tracks teams, votes, and quest results so players can review "wait, who proposed round 2?" without relying on memory.</p></div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-3)">🔒</div>
+            <div data-zh="<strong>数据从不离开你的手机</strong><p>所有游戏数据只保存在你浏览器的本地存储中——除非你主动发送反馈，否则什么都不会被上传。</p>"><strong>Never leaves your phone</strong><p>All game data is saved only in your browser's local storage — nothing is uploaded, unless you explicitly send feedback.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="追踪一次点击">Let's trace one tap</h2>
+        <p data-zh="想象一下：你是任务队长，需要为这一轮选出 3 名队员。你轻点了圆桌上的 4 号座位。">Picture this: you're the quest leader. You need to pick 3 players for this round's team. You tap seat 4 on the round table.</p>
+        <p data-zh="这一次简单的点击，会引发一连串精确而微小的连锁反应。下面就是幕后实际发生的事情，一步一步来看。">That single tap sets off a small, precise chain reaction. Here's what actually happens under the hood, one step at a time.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You tap seat 4 on the round table to add them to your team."},
+          {"highlight":"flow-actor-2","label":"The tap lands inside the SeatSvg component, the picture of the table itself.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"SeatSvg reports the tap upward by calling toggleTeamSeat(4) in the App Brain.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"The App Brain computes a brand new game state that includes seat 4 on the team."},
+          {"highlight":"flow-actor-4","label":"That new state is immediately written to your browser&#8217;s local storage, in case you close the tab.","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-2","label":"The new state flows back down, and seat 4 redraws itself as selected.","packet":true,"from":"actor-3","to":"actor-2"}
+        ]' data-steps-zh='[
+          {"highlight":"flow-actor-1","label":"你轻点圆桌上的 4 号座位，把它加入你的队伍。"},
+          {"highlight":"flow-actor-2","label":"这次点击被 SeatSvg 组件接收到——它就是画出这张桌子的那部分代码。","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"SeatSvg 把这次点击上报，调用了 App Brain 里的 toggleTeamSeat(4)。","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"App Brain 计算出一份全新的游戏状态，里面包含了刚加入队伍的 4 号座位。"},
+          {"highlight":"flow-actor-4","label":"这份新状态立刻被写入浏览器的本地存储，以防你关闭标签页。","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-2","label":"新状态向下流回，4 号座位重新绘制，显示为已选中。","packet":true,"from":"actor-3","to":"actor-2"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1"><div class="flow-actor-icon">👆</div><span data-zh="你">You</span></div>
+            <div class="flow-actor" id="flow-actor-2"><div class="flow-actor-icon">🪑</div><span>SeatSvg</span></div>
+            <div class="flow-actor" id="flow-actor-3"><div class="flow-actor-icon">🧠</div><span data-zh="App Brain<br>（page.tsx）">App Brain<br>(page.tsx)</span></div>
+            <div class="flow-actor" id="flow-actor-4"><div class="flow-actor-icon">💾</div><span>localStorage</span></div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn" data-zh="下一步">Next Step</button>
+            <button class="btn flow-reset-btn" data-zh="重新开始">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p data-zh="从点击到重绘的整趟旅程，发生在一瞬间之内。但请注意，它已经经过了三个不同的代码模块。这几乎就是这个应用里所有事情的基本形状。">The whole round trip — tap to redraw — happens in a fraction of a second. But notice it already touched three separate pieces of code. That's the shape of almost everything in this app.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="App Brain 从不编辑，只会替换">The App Brain never edits, it replaces</h2>
+        <p data-zh="下面就是 4 号座位这次点击实际调用的函数，它位于 <code>src/app/page.tsx</code> 中：">Here's the function seat 4's tap actually calls. It lives in <code>src/app/page.tsx</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">toggleTeamSeat</span>(seat: number) {</span>
+<span class="code-line">  <span class="code-function">updateState</span>((cur) =&gt; {</span>
+<span class="code-line">    <span class="code-keyword">const</span> exists = cur.pickedTeam.includes(seat);</span>
+<span class="code-line">    <span class="code-keyword">if</span> (!exists &amp;&amp; cur.pickedTeam.length &gt;= cur.missionSizes[cur.currentMission]) <span class="code-keyword">return</span> cur;</span>
+<span class="code-line">    <span class="code-keyword">return</span> { ...cur, pickedTeam: exists ? cur.pickedTeam.filter((s) =&gt; s !== seat) : [...cur.pickedTeam, seat].sort((a, b) =&gt; a - b) };</span>
+<span class="code-line">  });</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="定义当某个座位在选队阶段被点击时会发生什么。">Define what happens when a seat is tapped during team-picking.</p>
+              <p class="tl" data-zh="把当前游戏状态交给一个辅助函数，并描述该如何修改它。">Hand the current game state to a helper, and describe how to change it.</p>
+              <p class="tl" data-zh="检查一下：这个座位是不是已经在队伍里了？">Check: is this seat already on the team?</p>
+              <p class="tl" data-zh="如果不在，而且队伍已经满员，就什么都不做——拒绝这次点击。">If not, and the team is already full, do nothing — refuse the tap.</p>
+              <p class="tl"><span data-zh="否则，构建游戏状态的">Otherwise, build a </span><span class="term" data-definition="A brand-new copy of an object with a few fields changed — the original object is left untouched. Think of it as photocopying a form and only re-writing the boxes that changed." data-zh="整份全新副本" data-definition-zh="对一个对象做出的全新副本，只改动其中几个字段——原来的对象完全不受影响。可以把它想象成复印一张表格，只重新填写有变化的那几格。">whole new copy</span><span data-zh="：要么把 4 号座位从队伍里移除，要么把它加入并重新排序。"> of the game state: either seat 4 removed from the team, or added and the list re-sorted.</span></p>
+            </div>
+          </div>
+        </div>
+
+        <p><span data-zh="请注意其中">Notice what's </span><em data-zh="缺失">missing</em><span data-zh="的部分：这里没有一行代码写着 </span><code>localStorage.setItem(...)</code><span data-zh="。这正是巧妙之处——</span>. That's the trick — <span class="term" data-definition="A function is a named, reusable block of code that does one job. You can 'call' it by name whenever you need that job done, instead of retyping the steps every time." data-zh="这个函数" data-definition-zh="函数是一段有名字、可重复使用的代码块，只做一件事。你可以在需要完成这件事时通过名字&ldquo;调用&rdquo;它，而不必每次都重新敲一遍步骤。">this function</span><span data-zh="唯一的职责就是描述新的状态。至于保存，那是别人的工作。">'s only job is describing the new state. Saving it is somebody else's problem.</span></p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="翻页本原理">The flipbook principle</strong>
+            <p><span data-zh="这个应用不会在同一页上擦掉重画，而是为每一次变化画出全新的一页并翻过去——旧的那页被直接丢弃。工程师把这种做法叫做">Instead of erasing and redrawing on the same page, this app draws a brand new page for every change and flips to it — the old page is thrown away. Engineers call this </span><span class="term" data-definition="Immutable means 'cannot be changed after creation.' Instead of editing a piece of data in place, you create a new copy with your changes and swap it in. This makes bugs easier to track down, because old data never quietly mutates out from under you." data-zh="不可变性" data-definition-zh="不可变意味着&ldquo;创建之后就不能被更改&rdquo;。与其原地修改一份数据，不如创建一份带有改动的新副本，再把它替换进去。这让排查 bug 更容易，因为旧数据永远不会在你不知情的情况下悄悄发生变化。">immutability</span><span data-zh="。这听起来很浪费，但正是它让把这份游戏状态同时交给保存函数、历史记录和界面重绘变得安全——没有谁会踩到别人的脚，因为谁都不被允许去擦除任何东西。">. It sounds wasteful, but it's exactly what makes it safe to hand this game state to a saving function, a history log, and a screen redraw all at once — nobody can step on anybody else's toes, because nobody is allowed to erase anything.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="到底是谁在做保存这件事">Who actually does the saving</h2>
+        <p><span data-zh="每一张&ldquo;全新的页面&rdquo;在变得安全之前，都还要经过一个函数：">Every one of those "brand new pages" passes through one more function before it's safe: </span><code>persistState</code><span data-zh="，同样定义在 </span><code>page.tsx</code><span data-zh=" 中。">, also in <code>page.tsx</code>.</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">persistState</span>(nextState: GameState) {</span>
+<span class="code-line">  <span class="code-keyword">try</span> {</span>
+<span class="code-line">    <span class="code-keyword">const</span> serialized = <span class="code-property">JSON</span>.<span class="code-function">stringify</span>({ ...nextState, updatedAt: <span class="code-property">Date</span>.<span class="code-function">now</span>() });</span>
+<span class="code-line">    <span class="code-keyword">if</span> (serialized.length &gt; <span class="code-number">256</span> * <span class="code-number">1024</span>) <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">    localStorage.<span class="code-function">setItem</span>(storageKey, serialized);</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">true</span>;</span>
+<span class="code-line">  } <span class="code-keyword">catch</span> {</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">  }</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="拿到新游戏状态的样子。">Take whatever the new game state looks like.</p>
+              <p class="tl"><span data-zh="把它转换成">Turn it into </span><span class="term" data-definition="JSON (JavaScript Object Notation) is a plain-text way of writing structured data — the same format almost every app uses to save or send information, because any programming language can read it." data-zh="JSON" data-definition-zh="JSON（JavaScript 对象表示法）是一种以纯文本形式书写结构化数据的方式——几乎所有应用都用它来保存或传输信息，因为任何编程语言都能读懂它。">JSON</span><span data-zh="——纯文本，并给它打上当前时间戳。"> — plain text — and stamp it with the current time.</span></p>
+              <p class="tl" data-zh="如果体积超过 256KB 就拒绝保存，这样一局失控的游戏也不会悄悄把你浏览器的存储空间占满。">Refuse to save if it's grown past 256KB, so one runaway game can't quietly fill up your browser's storage.</p>
+              <p class="tl"><span data-zh="把这段文本写入">Write that text into </span><span class="term" data-definition="localStorage is a small text-only storage locker built into every browser, tied to this one website. Data saved there survives closing the tab or restarting the phone, but never leaves the device." data-zh="localStorage" data-definition-zh="localStorage 是每个浏览器内置的一个小型纯文本存储柜，与当前这个网站绑定。存在里面的数据在关闭标签页或重启手机后依然存在，但永远不会离开这台设备。">localStorage</span><span data-zh="，使用一个固定的键名。">, under a fixed key name.</span></p>
+              <p class="tl" data-zh="回报保存是否真的成功了，这样调用者才能在失败时提醒你。">Report back whether the save actually worked, so the caller can warn you if it didn't.</p>
+            </div>
+          </div>
+        </div>
+        <p data-zh="这就是为什么中途关闭应用再重新打开，你会精确地回到离开时的地方——每一次点击都会被写入磁盘，而不仅仅是&ldquo;每轮结束时&rdquo;。">This is why closing the app mid-game and reopening it puts you right back where you left off — every single tap, not just "end of round," gets written to disk.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right — toggleTeamSeat only describes the new state; it never touches localStorage. Every state change is funneled through updateState → persistState so saving can't be forgotten."
+               data-explanation-wrong="Not quite. Look again at toggleTeamSeat — there's no localStorage.setItem inside it. Saving happens in a separate, shared function that every update passes through."
+               data-explanation-right-zh="正确——toggleTeamSeat 只负责描述新的状态，它从不直接接触 localStorage。每一次状态变化都会经过 updateState → persistState，所以保存这件事不会被遗漏。"
+               data-explanation-wrong-zh="不太对。再看看 toggleTeamSeat——里面并没有 localStorage.setItem。保存这件事发生在另一个独立的共享函数里，所有更新都会经过它。">
+            <h3 class="quiz-question" data-zh="假设你要新增一个功能：重命名座位。如果你把重命名逻辑直接写在按钮的 onClick 处理函数里，而不是通过 updateState，会有什么风险？">You're adding a new feature: renaming a seat. If you write the rename logic directly inside a button's onClick handler instead of going through updateState, what's the risk?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="没有风险——onClick 处理函数可以安全地写到任何地方。">None — onClick handlers can safely write anywhere.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="重命名永远不会被保存到 localStorage，因为只有 updateState 会把变化路由经过 persistState。">The rename would never get saved to localStorage, because only updateState routes changes through persistState.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="应用会立刻崩溃。">The app would crash immediately.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Exactly. toggleTeamSeat builds a new object with the spread syntax (...cur) instead of changing cur.pickedTeam directly — that's immutability in action."
+               data-explanation-wrong="Not quite — look at the return line again. It uses { ...cur, pickedTeam: ... } to build a new object, rather than writing cur.pickedTeam.push(seat), which would change the old one in place."
+               data-explanation-right-zh="没错。toggleTeamSeat 使用展开语法（...cur）构建了一个新对象，而不是直接修改 cur.pickedTeam——这正是不可变性的实际体现。"
+               data-explanation-wrong-zh="不太对——再看看那行 return。它用 { ...cur, pickedTeam: ... } 构建了一个新对象，而不是写 cur.pickedTeam.push(seat)（那样会原地修改旧对象）。">
+            <h3 class="quiz-question" data-zh="在 toggleTeamSeat 中，代码是如何避免直接修改旧游戏状态的？">In toggleTeamSeat, how does the code avoid changing the old game state directly?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="它用 { ...cur, pickedTeam: ... } 构建并返回一个全新的对象，而不是编辑 cur 的字段。">It builds and returns a whole new object with { ...cur, pickedTeam: ... } instead of editing cur's fields.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="它没有避免——它用 .push() 直接编辑了 cur.pickedTeam。">It doesn't — it edits cur.pickedTeam directly with .push().</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')" data-zh="检查答案">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

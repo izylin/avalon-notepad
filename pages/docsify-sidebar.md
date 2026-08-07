@@ -1,0 +1,9 @@
+- [课程介绍](README.md)
+- 从代码到上线
+  - [0. 网站、服务器与部署基础](course/00-web-concepts.md)
+  - [1. Fork：创建自己的仓库](course/01-fork.md)
+  - [2. 在本地跑起来](course/02-local-development.md)
+  - [3. 首次部署到 Vercel](course/03-first-deployment.md)
+  - [4. 理解自动部署](course/04-automatic-deployments.md)
+  - [5. 可选：配置反馈功能](course/05-feedback.md)
+  - [6. 排查部署问题](course/06-troubleshooting.md)

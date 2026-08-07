@@ -1,0 +1,138 @@
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title" data-zh="组件之间如何对话">How the Pieces Talk</h1>
+      <p class="module-subtitle" data-zh="没有谁能单独行动。理解了这条规则，&ldquo;怎么没显示出来&rdquo;这类 bug 就不再神秘。">Nobody moves on their own. Understand this rule and "it's not showing up" bugs stop being mysterious.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="puppeteer 手中的提线">The puppeteer's strings</h2>
+        <p><span data-zh="把">Picture </span><code>page.tsx</code><span data-zh=" 想象成一个提线木偶师，">as a puppeteer, and </span><code>SeatSvg</code><span data-zh=" 想象成台上的木偶。木偶师决定木偶展示的一切——谁是队长、谁在队伍里、谁投了什么票——通过向下拉动提线来控制它。这些线就叫作"> as a puppet on stage. The puppeteer decides everything the puppet shows — which seat is the leader, who's on the team, who voted what — by pulling strings down onto it. Those strings are called </span><span class="term" data-definition="Props (short for 'properties') are the pieces of data a parent component hands down to a child component, like leaderSeat or voteMap. The child can display them, but can't change them directly." data-zh="props" data-definition-zh="props（&ldquo;properties&rdquo; 的缩写）是父组件向子组件传递下去的数据，比如 leaderSeat 或 voteMap。子组件可以展示它们，但不能直接修改它们。">props</span><span data-zh="。">.</span></p>
+        <p><span data-zh="木偶自己够不到、也没法拉动自己身上的线。如果它想让某件事发生变化——比如说，点击了 4 号座位——它唯一能做的，就是拽一下木偶师专门为此留下的">The puppet can't reach up and move its own strings. If it wants something to change — say, a tap on seat 4 — it can only tug back on </span><em data-zh="那一根">one</em><span data-zh="线：一个"> string the puppeteer left dangling for exactly that purpose: a </span><span class="term" data-definition="A callback is a function one piece of code hands to another, to be called later when something happens — like leaving a phone number so someone can call you back instead of you calling them repeatedly to check in." data-zh="回调函数" data-definition-zh="回调（callback）是一段代码交给另一段代码的函数，等某件事发生时再被调用——就像留下一个电话号码，让对方在有事时给你打回来，而不是你反复打电话去确认。">callback</span><span data-zh="。">.</span></p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">↓</div>
+            <div class="step-body" data-zh="<strong>Props 向下流动</strong><p>page.tsx 把 leaderSeat、teamSeats、voteMap 和 identityTags 作为普通数据传给 SeatSvg。</p>"><strong>Props flow down</strong><p>page.tsx passes leaderSeat, teamSeats, voteMap, and identityTags into SeatSvg as plain data.</p></div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">↑</div>
+            <div class="step-body" data-zh="<strong>回调向上流动</strong><p>SeatSvg 从不编辑这些数据。它只会调用 onSeatClick(seat)——一个 page.tsx 交给它的函数——然后等待。</p>"><strong>Callbacks flow up</strong><p>SeatSvg never edits that data. It only calls onSeatClick(seat) — a function page.tsx handed it — and waits.</p></div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">🔁</div>
+            <div class="step-body" data-zh="<strong>page.tsx 做决定，然后重绘</strong><p>page.tsx 运行真正的逻辑，产生新的状态，再把新的 props 向下传回去。木偶重新绘制自己，与之匹配。</p>"><strong>page.tsx decides, then redraws</strong><p>page.tsx runs the real logic, produces a new state, and passes fresh props back down. The puppet redraws itself to match.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="回调函数在真实场景中的样子">The callback in the wild</h2>
+        <p><span data-zh="在投票阶段，每一次座位点击都被接入了 ">During the voting phase, every seat tap is wired to this function in </span><code>page.tsx</code><span data-zh=" 中的这个函数："> in <code>page.tsx</code>:</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">toggleVoteSeat</span>(seat: number) {</span>
+<span class="code-line">  <span class="code-function">updateState</span>((cur) =&gt; {</span>
+<span class="code-line">    <span class="code-keyword">const</span> votes = { ...cur.votes };</span>
+<span class="code-line">    votes[seat] = votes[seat] === <span class="code-string">"agree"</span> ? <span class="code-string">"reject"</span> : <span class="code-string">"agree"</span>;</span>
+<span class="code-line">    <span class="code-keyword">return</span> { ...cur, votes };</span>
+<span class="code-line">  });</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="当投票阶段中座位 N 被点击时……">When seat N is tapped during voting...</p>
+              <p class="tl" data-zh="……开始一次状态更新，先复制到目前为止的投票情况。">...start a state update, copying the current votes so far.</p>
+              <p class="tl" data-zh="翻转该座位的投票：同意变为反对，反对（或未投）变为同意。">Flip that seat's vote: agree becomes reject, reject (or unset) becomes agree.</p>
+              <p class="tl" data-zh="返回带有更新后投票结果的新状态。">Hand back the new state with the updated votes.</p>
+            </div>
+          </div>
+        </div>
+
+        <p><code>SeatSvg</code><span data-zh=" 本身完全不知道&ldquo;同意&rdquo;或&ldquo;反对&rdquo;究竟意味着什么——它只是渲染拿到的 "> itself has zero knowledge of what "agree" or "reject" even means — it just renders whatever </span><code>voteMap</code><span data-zh=" prop，并通过 "> prop it was given, and reports taps through </span><code>onSeatClick</code><span data-zh="上报点击。每一个座位的颜色、勾选标记和文字标签，都是 ">. Every seat's color, checkmark, and label is a direct reflection of state living up in </span><code>page.tsx</code><span data-zh=" 中状态的直接映射。">.</span></p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="看看这场对话是怎么发生的">Watch the conversation happen</h2>
+        <p data-zh="下面展示的是当所有座位都投完票、你点击&ldquo;结算投票&rdquo;之后，&ldquo;结算投票&rdquo;这件事在各个组件之间实际发生的对话。">Here's what "resolving the vote" actually looks like as a conversation between the pieces, once all seats have voted and you tap "Resolve vote."</p>
+
+        <div class="chat-window" id="chat-module3">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="you" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">👆</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-1)" data-zh="你">You</span><p data-zh="8 个座位都投完票了。现在点击&ldquo;结算投票&rdquo;。">All 8 seats have voted. Tapping "Resolve vote" now.</p></div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="page" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">🎼</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-2)">page.tsx</span><p data-zh="正在统计票数：5 票同意，3 票反对。多数通过——队伍获批。">Counting votes: 5 agree, 3 reject. That's a majority — the team is approved.</p></div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="game" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">📜</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-3)">game.ts (logLaunch)</span><p data-zh="收到——我会把这次提议、队伍和投票结果一起加进永久的 launchLog 历史记录里。">Got it — I'll add this proposal, its team, and its votes to the permanent launchLog history.</p></div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="page" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">🎼</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-2)">page.tsx</span><p data-zh="既然通过了，我要把阶段切换到&ldquo;任务&rdquo;，并把连续否决计数器重置为零。">Since it passed, I'm switching the phase to "mission" and resetting the fail-vote counter to zero.</p></div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="seatsvg" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">🪑</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-4)">SeatSvg</span><p data-zh="收到新的 props 了——我要为任务界面重绘桌面。这不是我的决定，只是我的工作。">New props arrived — I'll redraw the table for the quest screen. Not my decision, just my job.</p></div>
+            </div>
+          </div>
+          <div class="chat-typing" id="chat-typing" style="display:none">
+            <div class="chat-avatar" id="typing-avatar">?</div>
+            <div class="chat-typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>
+          </div>
+          <div class="chat-controls">
+            <button class="btn chat-next-btn" data-zh="下一条消息">Next Message</button>
+            <button class="btn chat-all-btn" data-zh="全部播放">Play All</button>
+            <button class="btn chat-reset-btn" data-zh="重播">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="单向数据流">Unidirectional data flow</strong>
+            <p data-zh="注意 SeatSvg 从不回头和 game.ts 对话，game.ts 也从不伸手进入 SeatSvg。数据只沿一个环流动：作为 props 向下，作为回调向上。正是这种约束让界面变得可预测——当屏幕上出现问题时，你总是知道该从最上层开始，一路往下查，而不是随便乱猜。">Notice SeatSvg never talks back to game.ts, and game.ts never reaches into SeatSvg. Data only ever flows in one loop: down as props, up as callbacks. This discipline is what makes a UI predictable — when something on screen is wrong, you always know to start at the top and work down, never guess randomly.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="调试场景">Debugging scenario</span>
+              <p data-zh="有玩家反馈：&ldquo;我在投票时点击了 6 号座位，但他们的投票好像一直没有生效——座位还是灰色的。&rdquo;根据&ldquo;props 向下、回调向上&rdquo;这个模式，你会先从哪里查起？">A player reports: "I tapped seat 6 during voting, but their vote never seems to register — the seat stays gray." Based on the props-down, callbacks-up pattern, where would you look first?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="callback"
+                 data-explanation-right="Exactly. SeatSvg only reports taps through onSeatClick — it has no ability to update votes itself. If the callback wiring is broken or the tap doesn't propagate to toggleVoteSeat, page.tsx's state (and therefore voteMap) never changes, so the redraw never happens."
+                 data-explanation-wrong="Not quite. SeatSvg doesn't decide what a vote means — it can only report a tap upward through its onSeatClick callback prop. If that wiring is broken, page.tsx's state never updates, and the seat has nothing new to draw."
+                 data-explanation-right-zh="没错。SeatSvg 只会通过 onSeatClick 上报点击——它自己没有能力更新投票。如果回调的连接断了，或者点击没能传递到 toggleVoteSeat，page.tsx 的状态（以及因此的 voteMap）就永远不会改变，重绘也就不会发生。"
+                 data-explanation-wrong-zh="不太对。SeatSvg 并不决定投票意味着什么——它只能通过 onSeatClick 这个回调 prop 向上报告点击。如果这条连接断了，page.tsx 的状态永远不会更新，座位也就没有新东西可画。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="css" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="检查 SeatSvg 的 CSS 颜色——填充颜色一定是错的">Check SeatSvg's CSS colors — the fill color must be wrong</span></button>
+                <button class="quiz-option" data-value="callback" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="检查点击是否正确到达了 onSeatClick，并调用了 page.tsx 里的 toggleVoteSeat">Check whether the tap is correctly reaching onSeatClick and calling toggleVoteSeat in page.tsx</span></button>
+                <button class="quiz-option" data-value="storage" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="直接在浏览器里检查 localStorage——bug 一定在那里">Check localStorage directly in the browser — the bug must be there</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')" data-zh="检查答案">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

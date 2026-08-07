@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Avalon Notepad Works</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!--
+    CUSTOMIZE PER COURSE — change only the three accent variables below.
+    Chosen: amber — echoes the gold table-line/leader-ring color used
+    throughout the app's own SeatSvg UI (var(--line-gold), var(--gold)).
+  -->
+  <style>
+    :root {
+      --color-accent:       #D4A843;
+      --color-accent-hover: #BF9530;
+      --color-accent-light: #FDF5E0;
+      --color-accent-muted: #E0C070;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title" data-zh="Avalon Notepad 原理揭秘">How Avalon Notepad Works</span>
+      <div class="nav-right">
+        <div class="nav-dots" id="nav-dots" role="tablist">
+          <button class="nav-dot" data-target="module-1" data-tooltip="What it does" data-tooltip-zh="这是什么" role="tab" aria-label="Module 1: What it does"></button>
+          <button class="nav-dot" data-target="module-2" data-tooltip="Meet the cast" data-tooltip-zh="认识主要角色" role="tab" aria-label="Module 2: Meet the cast"></button>
+          <button class="nav-dot" data-target="module-3" data-tooltip="How pieces talk" data-tooltip-zh="组件如何通信" role="tab" aria-label="Module 3: How pieces talk"></button>
+          <button class="nav-dot" data-target="module-4" data-tooltip="Leaving the browser" data-tooltip-zh="离开浏览器" role="tab" aria-label="Module 4: Leaving the browser"></button>
+          <button class="nav-dot" data-target="module-5" data-tooltip="Clever tricks" data-tooltip-zh="巧妙的小技巧" role="tab" aria-label="Module 5: Clever tricks"></button>
+        </div>
+        <button id="lang-toggle" class="lang-toggle-btn" aria-label="切换到中文">中文</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->

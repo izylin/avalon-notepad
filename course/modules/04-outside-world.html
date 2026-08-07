@@ -1,0 +1,146 @@
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title" data-zh="离开浏览器">Leaving the Browser</h1>
+      <p class="module-subtitle" data-zh="这个应用里几乎所有东西都不会离开你的手机。这里是唯一一条会离开的路径——以及守在门口的保镖。">Almost everything in this app never leaves your phone. Here's the one path that does — and the bouncer guarding its door.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="两种截然不同的&ldquo;保存&rdquo;">Two very different kinds of "saving"</h2>
+        <p><span data-zh="你在第一模块已经认识了一个目的地：">You already met one destination in Module 1: </span><code>localStorage</code><span data-zh="，它从不离开设备。整个应用里只有另外一个目的地，而且规模要大得多：通过角落里的 📮 按钮提交反馈。">, which never leaves the device. There's exactly one other destination in this entire app, and it's much bigger: submitting feedback through the 📮 button in the corner.</span></p>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">💾</div>
+            <h4 class="pattern-title">localStorage</h4>
+            <p class="pattern-desc" data-zh="每一次游戏状态都会不断地被保存，永远留在这一台设备上。不涉及任何网络请求——它更像是一本记事本，而不是一个邮箱。">Every game state, saved constantly, stays on this one device forever. No network request involved — it's closer to a notepad than a mailbox.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">📮</div>
+            <h4 class="pattern-title" data-zh="反馈提交">Feedback submission</h4>
+            <p class="pattern-desc"><span data-zh="一次真正的">A real </span><span class="term" data-definition="A POST request is a network message that sends data to a server, asking it to create or change something — as opposed to a GET request, which just asks for information back. Submitting a form is a classic POST." data-zh="POST 请求" data-definition-zh="POST 请求是一种网络消息，把数据发送给服务器，要求它创建或修改某些内容——与 GET 请求不同，GET 只是索要信息返回。提交表单就是典型的 POST。">POST request</span><span data-zh="发送到服务器，服务器会创建一个 GitHub Issue。这是这个应用唯一的对外出口。"> to a server, which creates a GitHub Issue. This is the app's only outbound door.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="门口的保镖">The bouncer at the door</h2>
+        <p><span data-zh="任何离开浏览器的东西都需要经过一道检查关卡。这道关卡就在 ">Anything that leaves the browser needs a checkpoint. That checkpoint lives in </span><code>src/app/api/feedback/route.ts</code><span data-zh=" 中——这个应用唯一的 "> — the app's one </span><span class="term" data-definition="An API route is server-side code that runs on a server (never in the browser), reachable at a specific web address. The browser sends it a request; it sends back a response. It's the only place this app can keep secrets safe." data-zh="API 路由" data-definition-zh="API 路由是运行在服务器上（从不在浏览器里运行）的代码，可以通过一个特定的网址访问到。浏览器向它发送请求，它再返回响应。这是这个应用唯一能安全保管秘密信息的地方。">API route</span><span data-zh="。可以把它想象成夜店门口检查手环的保镖：每位访客每分钟最多提交 3 次。">. Think of it like a nightclub bouncer checking wristbands: no more than 3 submissions per visitor per minute.</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">rateLimited</span>(key: string) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> now = <span class="code-property">Date</span>.<span class="code-function">now</span>();</span>
+<span class="code-line">  <span class="code-keyword">const</span> recent = (hits.<span class="code-function">get</span>(key) ?? []).<span class="code-function">filter</span>((t) =&gt; now - t &lt; RATE_LIMIT.windowMs);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (recent.length &gt;= RATE_LIMIT.max) {</span>
+<span class="code-line">    hits.<span class="code-function">set</span>(key, recent);</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">true</span>;</span>
+<span class="code-line">  }</span>
+<span class="code-line">  recent.<span class="code-function">push</span>(now);</span>
+<span class="code-line">  hits.<span class="code-function">set</span>(key, recent);</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="对这位访客的识别键，检查一下：过去 60 秒里来了多少次提交？">For this visitor's identifying key, check: how many submissions came in during the last 60 seconds?</p>
+              <p class="tl" data-zh="丢弃一分钟之前的记录——只有最近的&ldquo;手环扫描&rdquo;才算数。">Throw out anything older than a minute — only recent wristband scans count.</p>
+              <p class="tl"><span data-zh="如果他们在这个时间窗口内已经达到了 3 次，就把他们拦下来（这就是">If they've already hit 3 in the window, turn them away (this is </span><span class="term" data-definition="Rate limiting is a rule that caps how many times something can happen in a given time window — like a bouncer only letting in 3 people per minute so the club doesn't get overwhelmed. It's a common defense against accidental spam or abuse." data-zh="速率限制" data-definition-zh="速率限制是一条规则，限制某件事在给定时间窗口内最多能发生多少次——就像保镖每分钟只放 3 个人进场，避免夜店被挤爆。它是防止误发垃圾信息或滥用的常见手段。">rate limiting</span><span data-zh="）。">).</span></p>
+              <p class="tl" data-zh="否则，给这次新访问打上当前时间戳，放它通过。">Otherwise, stamp this new visit with the current time and let them through.</p>
+            </div>
+          </div>
+        </div>
+        <p data-zh="这一步在你的截图或消息中的任何一个字节被查看之前就会运行——这是最廉价的检查，所以放在最前面。">This runs before a single byte of your screenshot or message is even looked at — it's the cheapest possible check, done first.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="完整旅程，一步一步来看">The full trip, step by step</h2>
+        <p data-zh="一旦通过了保镖这一关，下面就是你的反馈报告实际经过的每一站。">Once you're past the bouncer, here's everywhere your feedback report actually travels.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You annotate the screenshot, write a message, and tap Submit."},
+          {"highlight":"flow-actor-2","label":"The browser POSTs your message, screenshot, and page context to /api/feedback.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"The API route checks your rate limit, trims control characters, and rejects malformed screenshots."},
+          {"highlight":"flow-actor-3","label":"If everything checks out, it uploads your screenshot into the repo&#8217;s feedback-attachments folder.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"Then it creates a new GitHub Issue, linking that screenshot and your device details in the description.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-1","label":"The browser gets back a simple ok: true, and shows you \"Feedback received.\"","packet":true,"from":"actor-3","to":"actor-1"}
+        ]' data-steps-zh='[
+          {"highlight":"flow-actor-1","label":"你在截图上做标注、写下一条消息，然后点击&ldquo;提交&rdquo;。"},
+          {"highlight":"flow-actor-2","label":"浏览器把你的消息、截图和页面上下文一起 POST 到 /api/feedback。","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"API 路由检查你的提交速率，去除控制字符，并拒绝格式错误的截图。"},
+          {"highlight":"flow-actor-3","label":"如果一切都通过检查，它就把你的截图上传到仓库的 feedback-attachments 文件夹中。","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"然后它会创建一个新的 GitHub Issue，在描述里附上截图链接和你的设备信息。","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-1","label":"浏览器收到一个简单的 ok: true 响应，并向你显示&ldquo;反馈已收到&rdquo;。","packet":true,"from":"actor-3","to":"actor-1"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1"><div class="flow-actor-icon">📱</div><span data-zh="你的浏览器">Your Browser</span></div>
+            <div class="flow-actor" id="flow-actor-2"><div class="flow-actor-icon">💂</div><span data-zh="API 路由<br>（那位保镖）">API route<br>(the bouncer)</span></div>
+            <div class="flow-actor" id="flow-actor-3"><div class="flow-actor-icon">🐙</div><span>GitHub</span></div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn" data-zh="下一步">Next Step</button>
+            <button class="btn flow-reset-btn" data-zh="重新开始">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔑</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="为什么 GitHub 令牌永远不会碰到浏览器">Why the GitHub token never touches the browser</strong>
+            <p><span data-zh="API 路由从一个">The API route reads a GitHub access token from an </span><span class="term" data-definition="An environment variable is a named piece of configuration (like a password or setting) that lives outside your code, injected by the server when it starts up. Reading it from code, instead of typing it directly, means it never gets committed or shipped to users." data-zh="环境变量" data-definition-zh="环境变量是一段有名字的配置信息（比如密码或设置项），存在于你的代码之外，在服务器启动时被注入进来。从代码里读取它，而不是直接写死，意味着它永远不会被提交到代码仓库或发布给用户。">environment variable</span><span data-zh="中读取 GitHub 访问令牌——从不把它发送到页面上。任何发送到浏览器的东西，都能被打开开发者工具的人看到，所以真正的机密信息只能存在于服务器上。如果令牌缺失，"> — never sends it to the page. Anything shipped to the browser is visible to anyone who opens developer tools, so a real secret can only ever live on the server. If it's missing, </span><code>githubConfig()</code><span data-zh=" 会返回 null，反馈会安全地失败并提示&ldquo;未配置&rdquo;，而不是半吊子地工作。"> returns null and feedback fails safely with "not configured," rather than half-working.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly right. Any value the browser can read, a curious user can read too — via dev tools, network inspection, or the page's own JavaScript. Secrets belong exclusively on the server, which is the whole reason api/feedback/route.ts exists as a separate file from the components."
+               data-explanation-wrong="Not quite — speed isn't the reason. The real issue is that any code or data sent to the browser is visible to whoever opens developer tools. A real secret can only stay secret if it never leaves the server."
+               data-explanation-right-zh="完全正确。任何浏览器能读到的值，一个好奇的用户也能读到——通过开发者工具、网络请求检查，或者页面自己的 JavaScript。机密信息只能属于服务器，这正是 api/feedback/route.ts 之所以要作为独立文件、和组件分开存在的全部原因。"
+               data-explanation-wrong-zh="不太对——原因不是速度。真正的问题在于，任何发送到浏览器的代码或数据，都能被打开开发者工具的人看到。只有从不离开服务器，机密信息才能真正保密。">
+            <h3 class="quiz-question" data-zh="为什么 FEEDBACK_GITHUB_TOKEN 只存在于 API 路由中，而从不出现在运行于浏览器中的 FeedbackWidget.tsx 里？">Why does FEEDBACK_GITHUB_TOKEN live only inside the API route, never in FeedbackWidget.tsx (which runs in the browser)?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="因为浏览器代码里嵌入机密信息会运行得更慢。">Because browser code runs slower with secrets embedded in it.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="因为任何发送到浏览器的东西都能被用户检查到——真正的机密信息只有留在服务器上才能保密。">Because anything sent to the browser can be inspected by the user — a real secret only stays secret on the server.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="其实无所谓——两个位置效果一样好。">It doesn't matter — either location works equally well.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="调试场景">Debugging scenario</span>
+              <p data-zh="有人反馈：&ldquo;每次提交反馈都会失败，报 503 错误，提示&lsquo;Could not submit feedback.&rsquo;&rdquo;你检查了部署配置，发现 FEEDBACK_GITHUB_TOKEN 从未被设置过。这是怎么回事？">Someone reports: "Feedback submission fails every time with a 503 error and the message 'Could not submit feedback.'" You check the deploy and see FEEDBACK_GITHUB_TOKEN was never set. What's happening?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="config"
+                 data-explanation-right="Exactly. Without the token, githubConfig() returns null, and deliver() immediately throws 'the feedback service is not configured.' The route catches that and responds with a 503, matching exactly what was reported."
+                 data-explanation-wrong="Not quite. The rate limiter only fires after 3 rapid submissions and returns a 429 with a different message — it wouldn't explain a 503 failing on the very first try."
+                 data-explanation-right-zh="没错。没有令牌的话，githubConfig() 会返回 null，deliver() 会立刻抛出&ldquo;the feedback service is not configured&rdquo;的错误。路由捕获这个错误后返回 503，与反馈的现象完全吻合。"
+                 data-explanation-wrong-zh="不太对。速率限制器只有在快速提交超过 3 次之后才会触发，而且返回的是 429 和另一条提示信息——这解释不了第一次尝试就出现的 503 失败。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="rate" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="这位访客提交太频繁，被速率限制拦下了。">The visitor is being rate-limited for submitting too often.</span></button>
+                <button class="quiz-option" data-value="config" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="githubConfig() 找不到令牌，所以 deliver() 立刻抛出错误，路由返回 503。">githubConfig() finds no token, so deliver() throws immediately and the route returns a 503.</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')" data-zh="检查答案">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

@@ -1,0 +1,154 @@
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title" data-zh="认识主要角色">Meet the Cast</h1>
+      <p class="module-subtitle" data-zh="九个文件，每个都只做一件事。搞清楚谁负责什么，你就知道该把 AI 编程工具具体指向哪里。">Nine files, each with exactly one job. Know who does what, and you'll know exactly where to point an AI coding tool.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="这是一支管弦乐队，不是独角戏">An orchestra, not a solo act</h2>
+        <p><span data-zh="把这个代码库想象成一支管弦乐队。">Think of this codebase like an orchestra. </span><code>game.ts</code><span data-zh=" 是乐谱——每位演奏者都必须遵守的规则，一次性写下，从不打破。">is the sheet music — the rules every player must follow, written down once and never broken. </span><code>page.tsx</code><span data-zh=" 是指挥，像握着指挥棒一样持有当前状态，并向每个声部发出提示。其余的一切都是乐器声部：只负责演奏自己的那部分，不多不少。"> is the conductor, holding the current state like a baton and cueing every section. Everything else is an instrument section: it plays its part and nothing more.</span></p>
+        <div class="callout callout-info">
+          <div class="callout-icon">🎻</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="为什么这对引导 AI 很重要">Why this matters for steering AI</strong>
+            <p><span data-zh="当你要求 AI 工具&ldquo;新增一条规则：被否决的投票会跳过队长&rdquo;时，你希望它编辑的是乐谱（">When you ask an AI tool to "add a rule that a rejected vote skips the leader," you want it editing the sheet music (</span><code>game.ts</code><span data-zh="），而不是在某个随机的乐器声部里即兴发挥。了解了这支&ldquo;乐队&rdquo;，你就能准确地这样表达。">), not improvising inside a random instrument's part. Knowing the cast means you can say exactly that.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="文件地图">The file map</h2>
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">src/lib/</span>
+            <span class="ft-desc" data-zh="规则与共享逻辑——这里不涉及任何视觉展示">Rules and shared logic — no visuals live here</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">game.ts</span><span class="ft-desc" data-zh="规则手册：游戏状态的结构、角色配置、任务人数计算、存档/读档校验">The rulebook: game state shape, role setup, quest math, save/load validation</span></div>
+              <div class="ft-file"><span class="ft-name">i18n.tsx</span><span class="ft-desc" data-zh="翻译官：在中英文之间切换每一个界面文案">The translator: swaps every label between Chinese and English</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">src/app/</span>
+            <span class="ft-desc" data-zh="浏览器实际渲染的页面">The pages the browser actually renders</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">page.tsx</span><span class="ft-desc" data-zh="指挥：持有当前游戏状态，负责屏幕之间的路由，并把每一次点击接入 game.ts">The conductor: owns the current game, routes between screens, wires every click to game.ts</span></div>
+              <div class="ft-folder"><span class="ft-name">api/feedback/</span><span class="ft-desc" data-zh="这个应用与服务器对话的唯一场所">The one place this app talks to a server</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">src/components/</span>
+            <span class="ft-desc" data-zh="乐器声部——每一个都负责渲染屏幕上的一部分">Instrument sections — each renders one part of the screen</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">SeatSvg.tsx</span><span class="ft-desc" data-zh="绘制圆桌和每一个座位">Draws the round table and every seat</span></div>
+              <div class="ft-file"><span class="ft-name">IdentityTagsPanel.tsx</span><span class="ft-desc" data-zh="让你给某个座位标记一个怀疑的角色">Lets you tag a seat with a suspected role</span></div>
+              <div class="ft-file"><span class="ft-name">MissionPager / MissionReview / LaunchHistory / VoteResultGraphic</span><span class="ft-desc" data-zh="同一份任务历史的不同视图">Different views onto the same quest history</span></div>
+              <div class="ft-file"><span class="ft-name">TutorialGuide.tsx</span><span class="ft-desc" data-zh="面向新玩家的高亮引导教程">The spotlight tour for first-time players</span></div>
+              <div class="ft-file"><span class="ft-name">FeedbackWidget.tsx</span><span class="ft-desc" data-zh="截图、标注并发送 bug 反馈">Screenshot, annotate, and send a bug report</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="规则手册究竟知道些什么">What the rulebook actually knows</h2>
+        <p><span data-zh="判断一个">A big tell that a </span><span class="term" data-definition="A React component is a self-contained, reusable chunk of UI — like SeatSvg, which knows how to draw a round table but has no opinion about whose turn it is." data-zh="组件" data-definition-zh="React 组件是一个自包含、可复用的界面片段——比如 SeatSvg，它知道如何画一张圆桌，但对&ldquo;现在轮到谁&rdquo;毫无主见。">component</span><span data-zh="只是&ldquo;乐器声部&rdquo;而不是规则手册的一个明显标志：它从不自行编造游戏数学逻辑。这里有一个真实的例子——一局游戏需要多少&ldquo;忠臣&rdquo;和&ldquo;爪牙&rdquo;，直接来自 "> is "just an instrument section" and not the rulebook: it never invents game math on its own. Here's a real example — how many Loyal Servants and Minions a game needs, straight from </span><code>game.ts</code><span data-zh="：">:</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export</span> <span class="code-keyword">function</span> <span class="code-function">togglesFor</span>(playerCount: number): Record&lt;RoleKey, boolean&gt; {</span>
+<span class="code-line">  <span class="code-keyword">const</span> cfg = defaultConfig[playerCount];</span>
+<span class="code-line">  <span class="code-keyword">return</span> roleKeys.<span class="code-function">reduce</span>((acc, key) =&gt; {</span>
+<span class="code-line">    acc[key] = cfg.specials.includes(key);</span>
+<span class="code-line">    <span class="code-keyword">return</span> acc;</span>
+<span class="code-line">  }, {} <span class="code-keyword">as</span> Record&lt;RoleKey, boolean&gt;);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="根据参与人数，算出默认会启用哪些特殊角色。">Given how many people are playing, figure out which special roles are on by default.</p>
+              <p class="tl" data-zh="查找该人数对应的官方规则（5 到 10 名玩家各有一张固定的表）。">Look up the official rules for that player count (5 to 10 players each have a fixed table).</p>
+              <p class="tl" data-zh="遍历每一个可能的角色（梅林、派西维尔、摩甘娜……）">Walk through every possible role (Merlin, Percival, Morgana...)</p>
+              <p class="tl" data-zh="只有在这个人数的官方配置里包含它时，才把它标记为&ldquo;启用&rdquo;。">and mark it "on" only if that player count's official setup includes it.</p>
+              <p class="tl" data-zh="返回一份清单：每个角色对应一个是/否。">Hand back a checklist: one true/false per role.</p>
+            </div>
+          </div>
+        </div>
+        <p><span data-zh="在 ">Nowhere in </span><code>SeatSvg.tsx</code><span data-zh=" 或任何其他组件里，你都找不到任务人数表或角色数量——它们只会">or any other component will you find quest-size tables or role counts — they only ever </span><em data-zh="展示"> display</em><span data-zh=" </span><code>game.ts</code><span data-zh=" 所决定的结果。"> what <code>game.ts</code> decides.</span></p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="试试这张架构图">Try the architecture map</h2>
+        <p data-zh="点击每一个部分，看看它各自的职责。注意&ldquo;乐器声部&rdquo;区域里没有任何一个组件会直接与浏览器存储对话——只有指挥才会。">Click each piece to see its one job. Notice how nothing in the "Instrument Sections" zone talks to the browser's storage directly — only the Conductor does.</p>
+
+        <div class="arch-diagram">
+          <div class="arch-zone arch-zone-rules">
+            <h4 class="arch-zone-label" data-zh="规则手册">The Rulebook</h4>
+            <div class="arch-component" data-desc="game.ts: defines GameState's shape, the official quest-size tables, role setups, and every pure function that computes 'what happens next' — team picks, vote resolution, quest results, save validation." data-desc-zh="game.ts：定义了 GameState 的结构、官方任务人数表、角色配置，以及每一个计算&ldquo;接下来会发生什么&rdquo;的纯函数——选队、投票结算、任务结果、存档校验。" onclick="showArchDesc(this)">
+              <div class="arch-icon">📜</div><span>game.ts</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-conductor">
+            <h4 class="arch-zone-label" data-zh="指挥">The Conductor</h4>
+            <div class="arch-component" data-desc="page.tsx: holds the one live GameState object, decides which screen is showing, and is the only place that calls persistState to write to localStorage." data-desc-zh="page.tsx：持有唯一那份实时的 GameState 对象，决定当前显示哪个屏幕，也是唯一调用 persistState 写入 localStorage 的地方。" onclick="showArchDesc(this)">
+              <div class="arch-icon">🎼</div><span>page.tsx</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-instruments">
+            <h4 class="arch-zone-label" data-zh="乐器声部">Instrument Sections</h4>
+            <div class="arch-component" data-desc="SeatSvg: draws the round table, seats, leader ring, and team/vote highlighting. Reports taps upward — never decides what a tap means." data-desc-zh="SeatSvg：绘制圆桌、座位、队长指示环，以及队伍/投票的高亮效果。只会向上上报点击——从不决定一次点击意味着什么。" onclick="showArchDesc(this)">
+              <div class="arch-icon">🪑</div><span>SeatSvg</span>
+            </div>
+            <div class="arch-component" data-desc="IdentityTagsPanel: lets you pick a role tag, then hands seat taps back to page.tsx to record who you think holds it." data-desc-zh="IdentityTagsPanel：让你选择一个角色标签，然后把座位点击交回给 page.tsx，记录你认为谁拥有这个角色。" onclick="showArchDesc(this)">
+              <div class="arch-icon">🏷️</div><span>IdentityTagsPanel</span>
+            </div>
+            <div class="arch-component" data-desc="MissionPager / MissionReview / LaunchHistory / VoteResultGraphic: four different lenses on the same launchLog history — tabs, detail cards, and vote bar charts." data-desc-zh="MissionPager / MissionReview / LaunchHistory / VoteResultGraphic：对同一份 launchLog 历史记录的四种不同视角——标签页、详情卡片和投票柱状图。" onclick="showArchDesc(this)">
+              <div class="arch-icon">📊</div><span>Review components</span>
+            </div>
+            <div class="arch-component" data-desc="TutorialGuide: a spotlight overlay that points at real UI elements using CSS selectors — it never touches game state." data-desc-zh="TutorialGuide：一个通过 CSS 选择器指向真实界面元素的高亮遮罩层——它从不接触游戏状态。" onclick="showArchDesc(this)">
+              <div class="arch-icon">💡</div><span>TutorialGuide</span>
+            </div>
+            <div class="arch-component" data-desc="FeedbackWidget: screenshots the page, lets you annotate it, and posts the result to a server API route — the one component that leaves the browser." data-desc-zh="FeedbackWidget：为页面截图，让你在上面标注，再把结果发送到服务器的 API 路由——是唯一一个会离开浏览器的组件。" onclick="showArchDesc(this)">
+              <div class="arch-icon">📮</div><span>FeedbackWidget</span>
+            </div>
+          </div>
+          <div class="arch-description" id="arch-desc" data-zh="点击任意一个部分，了解它的职责">Click any piece to learn what it does</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="场景">Scenario</span>
+              <p data-zh="你想新增一条家规：&ldquo;如果同一支队伍连续两次被提议，就自动否决。&rdquo;AI 编程工具最应该先编辑哪个文件？">You want to add a house rule: "if the same team is proposed twice in a row, auto-reject it." Which file should an AI coding tool most likely edit first?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="game"
+                 data-explanation-right="Right — this is quest logic (a rule about how proposals resolve), which belongs in game.ts alongside the other pure rule functions like togglesFor and finalizeMission. Once the rule exists there, page.tsx would just call it."
+                 data-explanation-wrong="Not quite. SeatSvg only draws the table; it has no idea what 'the same team twice' even means. This is a rules question, which belongs in game.ts."
+                 data-explanation-right-zh="正确——这是一条任务逻辑（关于提议如何结算的规则），应该放进 game.ts，和 togglesFor、finalizeMission 等其他纯规则函数放在一起。规则一旦存在于那里，page.tsx 只需要调用它即可。"
+                 data-explanation-wrong-zh="不太对。SeatSvg 只负责画桌子，它根本不知道&ldquo;同一支队伍两次&rdquo;是什么意思。这是一个规则问题，应该放进 game.ts。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="seat" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="SeatSvg.tsx——它是显示选队情况的组件">SeatSvg.tsx — it's the component that shows team picks</span></button>
+                <button class="quiz-option" data-value="game" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="game.ts——这是一条关于提议如何结算的新规则">game.ts — it's a new rule about how proposals resolve</span></button>
+                <button class="quiz-option" data-value="feedback" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="FeedbackWidget.tsx——它负责处理用户输入">FeedbackWidget.tsx — it handles user input</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')" data-zh="检查答案">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

@@ -1,0 +1,158 @@
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title" data-zh="巧妙的小技巧">The Clever Tricks</h1>
+      <p class="module-subtitle" data-zh="两个值得在你自己的项目里借鉴的模式，外加当出问题时该如何像侦探一样思考。">Two patterns worth stealing for your own projects, plus how to think like a debugger when something breaks.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="行李不扫描，绝不轻信">Never trust the suitcase without scanning it</h2>
+        <p><code>localStorage</code><span data-zh=" 只是一个安静躺在你浏览器里的文本文件。任何打开了开发者工具的人都可能把它手动改成一堆垃圾——又或者未来某个版本的应用保存了这个版本完全没预料到的数据结构。在应用加载存档之前，它会先让这份数据经过一道安全关卡："> is just a text file sitting in your browser. Anyone with dev tools open could hand-edit it into garbage — or a future version of the app could save a shape this version doesn't expect. Before the app ever loads a saved game, it runs it through a security checkpoint: </span><code>isSavedGameState</code><span data-zh="，就像安检员在每个行李箱被允许登机之前都要扫描一遍。">, like a scanner checking every bag before it's allowed onto the plane.</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">isVotes</span>(value: unknown, playerCount: number): value <span class="code-keyword">is</span> Record&lt;number, Vote&gt; {</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!<span class="code-function">isRecord</span>(value) || <span class="code-property">Object</span>.<span class="code-function">keys</span>(value).length &gt; playerCount) <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-property">Object</span>.<span class="code-function">entries</span>(value).<span class="code-function">every</span>(([seat, vote]) =&gt; (</span>
+<span class="code-line">    <span class="code-function">isSeat</span>(Number(seat), playerCount) &amp;&amp; (vote === <span class="code-string">"agree"</span> || vote === <span class="code-string">"reject"</span>)</span>
+<span class="code-line">  ));</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="给定一个从存储中取出的未知值，判断它是否真的是一份合法的投票记录。">Given some unknown value pulled out of storage, decide whether it's actually a valid votes record.</p>
+              <p class="tl" data-zh="如果它连一个对象都不是，或者条目数比玩家人数还多，直接拒绝。">Reject it outright if it isn't even an object, or has more entries than there are players.</p>
+              <p class="tl" data-zh="否则，逐一检查每一条记录……">Otherwise, check every single entry...</p>
+              <p class="tl" data-zh="……座位号必须是真实存在的，投票必须恰好是&ldquo;同意&rdquo;或&ldquo;反对&rdquo;——没有别的值能蒙混过关。">...the seat number must be real, and the vote must be exactly "agree" or "reject" — nothing else sneaks through.</p>
+            </div>
+          </div>
+        </div>
+
+        <p><span data-zh="这个函数只是 ">This function is one of dozens of tiny checks inside </span><code>isSavedGameState</code><span data-zh="内部数十项细小检查中的一个。只要有一个字段没通过扫描，整份存档就会被丢弃，就当它从未存在过——与其让屏幕用一份被污染的数据勉强拼出一半，不如老老实实提示&ldquo;请开始新游戏&rdquo;。">. If even one field fails its scan, the entire save is thrown out and treated as if it never existed — better an honest "please start a new game" than a screen half-built from corrupted data.</span></p>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="这对你意味着什么">Why this matters for you</strong>
+            <p><span data-zh="任何时候，只要你的应用要从一个你无法完全掌控的地方加载数据——">Any time your app loads data from somewhere you don't fully control — </span><span class="term" data-definition="A type guard is a function that checks whether some unknown data actually matches an expected shape, and tells the rest of the program the answer with confidence. It's the difference between hoping data is safe and verifying it." data-zh="本地存储" data-definition-zh="类型守卫（type guard）是一种函数，用来检查某个未知数据是否真的符合预期的结构，并把结果明确地告诉程序的其他部分。这是&ldquo;祈祷数据是安全的&rdquo;和&ldquo;真正验证过数据安全&rdquo;之间的区别。">local storage</span><span data-zh="、URL、文件上传、另一个网站的 API——都应该假设它可能是错的、被篡改过的，或者来自你自己应用的旧版本。请 AI 工具&ldquo;先验证再信任&rdquo;，而不只是&ldquo;加载它&rdquo;。">, a URL, a file upload, another website's API — assume it could be wrong, tampered with, or from an old version of your own app. Ask an AI tool to "validate this before trusting it," not just "load this."</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="侦探的案情板，而不是一张便利贴">A detective's case board, not a single sticky note</h2>
+        <p data-zh="身份标签面板不会只记住&ldquo;4 号座位被标记为梅林&rdquo;这一个事实。它还会记住你是&ldquo;什么时候&rdquo;做出这个判断的——因为随着游戏进行，你的怀疑会发生变化，回顾第二轮任务时，应该显示你当时相信的内容，而不是你现在相信的内容。">The Identity Tags panel doesn't just remember "seat 4 is tagged Merlin." It remembers <em>when</em> you decided that — because your suspicions change as the game unfolds, and reviewing Quest 2 should show what you believed back then, not what you believe now.</p>
+        <p data-zh="你放置的每一个标签都会被记录为一个带有起始点的事件——一旦你为这个座位重新打标签，还会加上一个结束点。这就像一块软木板，旧的便条不会被擦掉，而是连同日期一起被钉在原地。">Every tag you place is logged as an event with a start point, and — once you retag that seat — an end point. It's a corkboard where old notes stay pinned with their dates instead of being erased.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export</span> <span class="code-keyword">function</span> <span class="code-function">effectiveIdentityTags</span>(state: GameState, missionIndex: number): Record&lt;number, IdentityTag&gt; {</span>
+<span class="code-line">  <span class="code-keyword">return</span> (state.identityTagEvents ?? []).<span class="code-function">reduce</span>&lt;Record&lt;number, IdentityTag&gt;&gt;((tags, event) =&gt; {</span>
+<span class="code-line">    <span class="code-keyword">if</span> (event.startMission &lt;= missionIndex &amp;&amp; (event.endMission === <span class="code-keyword">undefined</span> || missionIndex &lt; event.endMission)) {</span>
+<span class="code-line">      tags[event.seat] = event.tag;</span>
+<span class="code-line">    }</span>
+<span class="code-line">    <span class="code-keyword">return</span> tags;</span>
+<span class="code-line">  }, {});</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="给定整局游戏，以及&ldquo;我现在正在看哪个任务&rdquo;……">Given the whole game and "which quest am I looking at right now"...</p>
+              <p class="tl" data-zh="……遍历每一个曾经放置过的标签，一条一条地把答案拼出来。">...walk through every tag ever placed, building up the answer one note at a time.</p>
+              <p class="tl" data-zh="只有当一条记录在这个任务之前就已经开始、并且（如果后来被移除了）在这个任务时还没被移除，才算数。">Only count a note if it started by this quest, and (if it was later removed) hadn't been removed yet at this quest.</p>
+              <p class="tl" data-zh="如果算数，这个座位在这个时间点的快照里就显示这个标签。">If it counts, this seat shows that tag for this snapshot in time.</p>
+              <p class="tl" data-zh="继续处理下一条记录。">Move to the next note.</p>
+              <p class="tl" data-zh="返回最终的快照：那个任务当时案情板的真实样子。">Hand back the finished snapshot: exactly what the board looked like at that quest.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🕰️</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="记录事件，而不是覆写状态">Log events, don't overwrite state</strong>
+            <p data-zh="这是一个通用模式：与其只存储&ldquo;当前的值&rdquo;、并在每次它变化时丢失历史，不如存储一份带日期的事件列表，需要时再按需计算出&ldquo;截至任意时间点的值&rdquo;。这在前期会多写一点代码，却能免费换来一份可回溯的完整历史。">This is a general pattern: instead of storing "the current value" and losing history every time it changes, store a list of dated events and compute "the value as of any point in time" on demand. It costs a little more code up front and buys you a rewindable history for free.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="找出这个 bug">Spot the bug</h2>
+        <p><span data-zh="这里是第一模块 ">Here's a broken rewrite of </span><code>toggleTeamSeat</code><span data-zh=" 的一个被改坏的版本。它看起来几乎一模一样——但打破了你在那里学到的不可变性规则。点击有问题的那一行。"> from Module 1. It looks almost identical — but breaks the immutability rule you learned there. Click the line that's the problem.</span></p>
+
+        <div class="bug-challenge">
+          <h3 data-zh="找出这段重写代码中的 bug：">Find the bug in this rewrite:</h3>
+          <div class="bug-code">
+            <div class="bug-line" data-line="1" onclick="checkBugLine(this, false)"><span class="line-num">1</span><code>function toggleTeamSeat(seat) {</code></div>
+            <div class="bug-line" data-line="2" onclick="checkBugLine(this, false)"><span class="line-num">2</span><code>  updateState((cur) => {</code></div>
+            <div class="bug-line bug-target" data-line="3" data-explanation="cur.pickedTeam.push(seat) changes the existing array in place — the exact 'editing the old page' move the flipbook principle warns against. React can't tell anything changed, because cur is literally the same object as before. Fix: return a new array, like [...cur.pickedTeam, seat]." data-explanation-zh="cur.pickedTeam.push(seat) 原地修改了已有的数组——这正是翻页本原理警告我们不要做的&ldquo;编辑旧页面&rdquo;那种操作。React 完全无法察觉任何变化，因为 cur 和之前是同一个对象。修复方法：返回一个新数组，比如 [...cur.pickedTeam, seat]。" onclick="checkBugLine(this, true)"><span class="line-num">3</span><code>    if (!cur.pickedTeam.includes(seat)) cur.pickedTeam.push(seat);</code></div>
+            <div class="bug-line" data-line="4" onclick="checkBugLine(this, false)"><span class="line-num">4</span><code>    return cur;</code></div>
+            <div class="bug-line" data-line="5" onclick="checkBugLine(this, false)"><span class="line-num">5</span><code>  });</code></div>
+            <div class="bug-line" data-line="6" onclick="checkBugLine(this, false)"><span class="line-num">6</span><code>}</code></div>
+          </div>
+          <div class="bug-feedback" id="bug-feedback"></div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="架构决策">Architecture decision</span>
+              <p data-zh="你正在为另一款完全不同的桌游从零开始构建一个类似的记录伴侣应用。一位队友建议只存储&ldquo;当前谁被标记成了什么角色&rdquo;，每次标签变化时直接覆写，以求代码更简单。基于你在这里学到的 identityTagEvents 的作用，你会怎么回应？">You're building a similar note-taking companion for a different tabletop game from scratch. A teammate suggests storing only "who is currently tagged what" and overwriting it every time a tag changes, to keep the code simpler. Based on what identityTagEvents does here, what would you tell them?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="history"
+                 data-explanation-right="Right. Overwriting loses the ability to answer 'what did I believe back when I was reviewing Quest 2?' — which is exactly the feature effectiveIdentityTags exists to provide. The event-log approach costs a bit more code but keeps that history available for free."
+                 data-explanation-wrong="Not quite — simplicity has a real cost here. If you only store the current tag and overwrite it, you permanently lose the ability to show what a player believed at an earlier point in the game, which this app's quest-review screens depend on."
+                 data-explanation-right-zh="没错。直接覆写会让你永远无法回答&ldquo;我在回顾第二轮任务时当时相信的是什么&rdquo;——而这正是 effectiveIdentityTags 存在的意义。事件日志的做法会多写一点代码，但换来了免费保留的历史记录。"
+                 data-explanation-wrong-zh="不太对——&ldquo;简单&rdquo;在这里是有真实代价的。如果你只存储当前标签并直接覆写，你会永久失去展示玩家在游戏早期相信过什么的能力，而这正是这个应用的任务回顾界面所依赖的功能。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="simple" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="同意——更简单的存储方式没有什么值得担心的缺点。">Agree — simpler storage with no downsides worth worrying about.</span></button>
+                <button class="quiz-option" data-value="history" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="提出异议——直接覆写会让你失去回顾&ldquo;游戏早期你相信过什么&rdquo;的能力，而这正是回顾界面存在的全部意义。">Push back — overwriting loses the ability to review what you believed at an earlier point in the game, which is the whole point of the review screens.</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. Because every update in this app goes through a pure function that takes the old state and returns a new one, you can always ask 'which function produced this wrong value?' and check it in isolation — no need to hunt through scattered mutations across the codebase."
+               data-explanation-wrong="Not quite. There's no need to add logging everywhere or rewrite the whole state system — the app's existing structure (pure functions in, pure functions out) already makes it possible to isolate exactly which function produced a bad state."
+               data-explanation-right-zh="没错。因为这个应用里的每一次更新都会经过一个纯函数——接收旧状态，返回新状态——你总是可以问：&ldquo;是哪个函数产生了这个错误的值？&rdquo;，然后单独检查它，不需要在代码库里到处翻找散落的状态修改。"
+               data-explanation-wrong-zh="不太对。没必要到处加日志，也没必要重写整个状态系统——这个应用现有的结构（纯函数进、纯函数出）已经让你可以精确定位是哪个函数产生了错误的状态。">
+            <h3 class="quiz-question" data-zh="从回顾界面编辑一个任务结果之后，结果看起来不对了。根据你目前学到的关于状态如何在这个应用中流动的一切，最直接的排查方式是什么？">A quest result looks wrong after editing it from the review screen. Given everything you've learned about how state changes flow through this app, what's the most direct way to track down the bug?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="在每个组件里到处加 console.log，指望能碰巧发现点什么。">Add console.log everywhere in every component, hoping something stands out.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="把整个状态系统推倒重写，因为现有的这套大概率不可靠。">Rewrite the state system from scratch, since the current one is probably unreliable.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="追踪是 game.ts 里的哪个纯函数产生了新状态（大概率是 editMissionRecord），然后单独检查它的逻辑。">Trace which pure function in game.ts produced the new state (probably editMissionRecord) and check its logic in isolation.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')" data-zh="检查答案">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <div class="callout callout-info">
+          <div class="callout-icon">🏁</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="你现在所到达的地方">Where you've ended up</strong>
+            <p data-zh="现在你已经了解了一个小型、组织良好的 React 应用的基本形态：一份由纯函数组成的规则手册，一个持有状态的指挥，只负责渲染 props 和上报回调的乐器组件，一扇被小心守卫的通往外部世界的门，以及在每一个数据可能&ldquo;说谎&rdquo;的边界处进行的校验。这套思维模型，几乎可以迁移到你接下来用 AI 工具驾驭的任何应用上。">You now know the shape of a small, well-organized React app: a rulebook of pure functions, a conductor holding state, instrument components that only ever render props and report callbacks, one carefully guarded door to the outside world, and validation at every boundary where data could lie to you. That mental model transfers to almost any app you'll steer an AI tool through next.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

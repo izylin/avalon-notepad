@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Avalon Notepad Works</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!--
+    CUSTOMIZE PER COURSE — change only the three accent variables below.
+    Chosen: amber — echoes the gold table-line/leader-ring color used
+    throughout the app's own SeatSvg UI (var(--line-gold), var(--gold)).
+  -->
+  <style>
+    :root {
+      --color-accent:       #D4A843;
+      --color-accent-hover: #BF9530;
+      --color-accent-light: #FDF5E0;
+      --color-accent-muted: #E0C070;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title" data-zh="Avalon Notepad 原理揭秘">How Avalon Notepad Works</span>
+      <div class="nav-right">
+        <div class="nav-dots" id="nav-dots" role="tablist">
+          <button class="nav-dot" data-target="module-1" data-tooltip="What it does" data-tooltip-zh="这是什么" role="tab" aria-label="Module 1: What it does"></button>
+          <button class="nav-dot" data-target="module-2" data-tooltip="Meet the cast" data-tooltip-zh="认识主要角色" role="tab" aria-label="Module 2: Meet the cast"></button>
+          <button class="nav-dot" data-target="module-3" data-tooltip="How pieces talk" data-tooltip-zh="组件如何通信" role="tab" aria-label="Module 3: How pieces talk"></button>
+          <button class="nav-dot" data-target="module-4" data-tooltip="Leaving the browser" data-tooltip-zh="离开浏览器" role="tab" aria-label="Module 4: Leaving the browser"></button>
+          <button class="nav-dot" data-target="module-5" data-tooltip="Clever tricks" data-tooltip-zh="巧妙的小技巧" role="tab" aria-label="Module 5: Clever tricks"></button>
+        </div>
+        <button id="lang-toggle" class="lang-toggle-btn" aria-label="切换到中文">中文</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title" data-zh="认识 Avalon Notepad">Meet Avalon Notepad</h1>
+      <p class="module-subtitle" data-zh="一款没有记分本的游戏专属的记分板——以及你轻点座位的那一瞬间发生的一切。">A scorekeeper's clipboard for a game that has none — and what happens the instant you tap a seat.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="它解决的问题">The problem it solves</h2>
+        <p data-zh="《抵抗组织：阿瓦隆》是一款完全面对面、围坐桌前进行的社交推理桌游，全程不需要任何屏幕——直到有人需要回忆三轮之前谁投了什么票。这就是 Avalon Notepad 要填补的空白。"><em>The Resistance: Avalon</em> is a social deduction board game played entirely face-to-face, around a table, with no screens involved — until someone needs to remember who voted what three rounds ago. That's the gap Avalon Notepad fills.</p>
+        <div class="icon-rows stagger-children">
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🪑</div>
+            <div data-zh="<strong>在牌桌旁实时使用</strong><p>一名玩家用手机运行它，其他人则用实体卡牌进行游戏——它从不掌控游戏，只负责记录。</p>"><strong>Live at the table</strong><p>One player runs it on their phone while everyone else plays with physical cards — it never controls the game, only records it.</p></div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🧠</div>
+            <div data-zh="<strong>是记忆辅助工具，不是规则裁判</strong><p>它记录队伍、投票和任务结果，让玩家可以回顾&ldquo;等等，第二轮是谁提的队？&rdquo;，而不必全靠记忆。</p>"><strong>A memory aid, not a rulebook enforcer</strong><p>It tracks teams, votes, and quest results so players can review "wait, who proposed round 2?" without relying on memory.</p></div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-3)">🔒</div>
+            <div data-zh="<strong>数据从不离开你的手机</strong><p>所有游戏数据只保存在你浏览器的本地存储中——除非你主动发送反馈，否则什么都不会被上传。</p>"><strong>Never leaves your phone</strong><p>All game data is saved only in your browser's local storage — nothing is uploaded, unless you explicitly send feedback.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="追踪一次点击">Let's trace one tap</h2>
+        <p data-zh="想象一下：你是任务队长，需要为这一轮选出 3 名队员。你轻点了圆桌上的 4 号座位。">Picture this: you're the quest leader. You need to pick 3 players for this round's team. You tap seat 4 on the round table.</p>
+        <p data-zh="这一次简单的点击，会引发一连串精确而微小的连锁反应。下面就是幕后实际发生的事情，一步一步来看。">That single tap sets off a small, precise chain reaction. Here's what actually happens under the hood, one step at a time.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You tap seat 4 on the round table to add them to your team."},
+          {"highlight":"flow-actor-2","label":"The tap lands inside the SeatSvg component, the picture of the table itself.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"SeatSvg reports the tap upward by calling toggleTeamSeat(4) in the App Brain.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"The App Brain computes a brand new game state that includes seat 4 on the team."},
+          {"highlight":"flow-actor-4","label":"That new state is immediately written to your browser&#8217;s local storage, in case you close the tab.","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-2","label":"The new state flows back down, and seat 4 redraws itself as selected.","packet":true,"from":"actor-3","to":"actor-2"}
+        ]' data-steps-zh='[
+          {"highlight":"flow-actor-1","label":"你轻点圆桌上的 4 号座位，把它加入你的队伍。"},
+          {"highlight":"flow-actor-2","label":"这次点击被 SeatSvg 组件接收到——它就是画出这张桌子的那部分代码。","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"SeatSvg 把这次点击上报，调用了 App Brain 里的 toggleTeamSeat(4)。","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"App Brain 计算出一份全新的游戏状态，里面包含了刚加入队伍的 4 号座位。"},
+          {"highlight":"flow-actor-4","label":"这份新状态立刻被写入浏览器的本地存储，以防你关闭标签页。","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-2","label":"新状态向下流回，4 号座位重新绘制，显示为已选中。","packet":true,"from":"actor-3","to":"actor-2"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1"><div class="flow-actor-icon">👆</div><span data-zh="你">You</span></div>
+            <div class="flow-actor" id="flow-actor-2"><div class="flow-actor-icon">🪑</div><span>SeatSvg</span></div>
+            <div class="flow-actor" id="flow-actor-3"><div class="flow-actor-icon">🧠</div><span data-zh="App Brain<br>（page.tsx）">App Brain<br>(page.tsx)</span></div>
+            <div class="flow-actor" id="flow-actor-4"><div class="flow-actor-icon">💾</div><span>localStorage</span></div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn" data-zh="下一步">Next Step</button>
+            <button class="btn flow-reset-btn" data-zh="重新开始">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p data-zh="从点击到重绘的整趟旅程，发生在一瞬间之内。但请注意，它已经经过了三个不同的代码模块。这几乎就是这个应用里所有事情的基本形状。">The whole round trip — tap to redraw — happens in a fraction of a second. But notice it already touched three separate pieces of code. That's the shape of almost everything in this app.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="App Brain 从不编辑，只会替换">The App Brain never edits, it replaces</h2>
+        <p data-zh="下面就是 4 号座位这次点击实际调用的函数，它位于 <code>src/app/page.tsx</code> 中：">Here's the function seat 4's tap actually calls. It lives in <code>src/app/page.tsx</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">toggleTeamSeat</span>(seat: number) {</span>
+<span class="code-line">  <span class="code-function">updateState</span>((cur) =&gt; {</span>
+<span class="code-line">    <span class="code-keyword">const</span> exists = cur.pickedTeam.includes(seat);</span>
+<span class="code-line">    <span class="code-keyword">if</span> (!exists &amp;&amp; cur.pickedTeam.length &gt;= cur.missionSizes[cur.currentMission]) <span class="code-keyword">return</span> cur;</span>
+<span class="code-line">    <span class="code-keyword">return</span> { ...cur, pickedTeam: exists ? cur.pickedTeam.filter((s) =&gt; s !== seat) : [...cur.pickedTeam, seat].sort((a, b) =&gt; a - b) };</span>
+<span class="code-line">  });</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="定义当某个座位在选队阶段被点击时会发生什么。">Define what happens when a seat is tapped during team-picking.</p>
+              <p class="tl" data-zh="把当前游戏状态交给一个辅助函数，并描述该如何修改它。">Hand the current game state to a helper, and describe how to change it.</p>
+              <p class="tl" data-zh="检查一下：这个座位是不是已经在队伍里了？">Check: is this seat already on the team?</p>
+              <p class="tl" data-zh="如果不在，而且队伍已经满员，就什么都不做——拒绝这次点击。">If not, and the team is already full, do nothing — refuse the tap.</p>
+              <p class="tl"><span data-zh="否则，构建游戏状态的">Otherwise, build a </span><span class="term" data-definition="A brand-new copy of an object with a few fields changed — the original object is left untouched. Think of it as photocopying a form and only re-writing the boxes that changed." data-zh="整份全新副本" data-definition-zh="对一个对象做出的全新副本，只改动其中几个字段——原来的对象完全不受影响。可以把它想象成复印一张表格，只重新填写有变化的那几格。">whole new copy</span><span data-zh="：要么把 4 号座位从队伍里移除，要么把它加入并重新排序。"> of the game state: either seat 4 removed from the team, or added and the list re-sorted.</span></p>
+            </div>
+          </div>
+        </div>
+
+        <p><span data-zh="请注意其中">Notice what's </span><em data-zh="缺失">missing</em><span data-zh="的部分：这里没有一行代码写着 </span><code>localStorage.setItem(...)</code><span data-zh="。这正是巧妙之处——</span>. That's the trick — <span class="term" data-definition="A function is a named, reusable block of code that does one job. You can 'call' it by name whenever you need that job done, instead of retyping the steps every time." data-zh="这个函数" data-definition-zh="函数是一段有名字、可重复使用的代码块，只做一件事。你可以在需要完成这件事时通过名字&ldquo;调用&rdquo;它，而不必每次都重新敲一遍步骤。">this function</span><span data-zh="唯一的职责就是描述新的状态。至于保存，那是别人的工作。">'s only job is describing the new state. Saving it is somebody else's problem.</span></p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="翻页本原理">The flipbook principle</strong>
+            <p><span data-zh="这个应用不会在同一页上擦掉重画，而是为每一次变化画出全新的一页并翻过去——旧的那页被直接丢弃。工程师把这种做法叫做">Instead of erasing and redrawing on the same page, this app draws a brand new page for every change and flips to it — the old page is thrown away. Engineers call this </span><span class="term" data-definition="Immutable means 'cannot be changed after creation.' Instead of editing a piece of data in place, you create a new copy with your changes and swap it in. This makes bugs easier to track down, because old data never quietly mutates out from under you." data-zh="不可变性" data-definition-zh="不可变意味着&ldquo;创建之后就不能被更改&rdquo;。与其原地修改一份数据，不如创建一份带有改动的新副本，再把它替换进去。这让排查 bug 更容易，因为旧数据永远不会在你不知情的情况下悄悄发生变化。">immutability</span><span data-zh="。这听起来很浪费，但正是它让把这份游戏状态同时交给保存函数、历史记录和界面重绘变得安全——没有谁会踩到别人的脚，因为谁都不被允许去擦除任何东西。">. It sounds wasteful, but it's exactly what makes it safe to hand this game state to a saving function, a history log, and a screen redraw all at once — nobody can step on anybody else's toes, because nobody is allowed to erase anything.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="到底是谁在做保存这件事">Who actually does the saving</h2>
+        <p><span data-zh="每一张&ldquo;全新的页面&rdquo;在变得安全之前，都还要经过一个函数：">Every one of those "brand new pages" passes through one more function before it's safe: </span><code>persistState</code><span data-zh="，同样定义在 </span><code>page.tsx</code><span data-zh=" 中。">, also in <code>page.tsx</code>.</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">persistState</span>(nextState: GameState) {</span>
+<span class="code-line">  <span class="code-keyword">try</span> {</span>
+<span class="code-line">    <span class="code-keyword">const</span> serialized = <span class="code-property">JSON</span>.<span class="code-function">stringify</span>({ ...nextState, updatedAt: <span class="code-property">Date</span>.<span class="code-function">now</span>() });</span>
+<span class="code-line">    <span class="code-keyword">if</span> (serialized.length &gt; <span class="code-number">256</span> * <span class="code-number">1024</span>) <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">    localStorage.<span class="code-function">setItem</span>(storageKey, serialized);</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">true</span>;</span>
+<span class="code-line">  } <span class="code-keyword">catch</span> {</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">  }</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="拿到新游戏状态的样子。">Take whatever the new game state looks like.</p>
+              <p class="tl"><span data-zh="把它转换成">Turn it into </span><span class="term" data-definition="JSON (JavaScript Object Notation) is a plain-text way of writing structured data — the same format almost every app uses to save or send information, because any programming language can read it." data-zh="JSON" data-definition-zh="JSON（JavaScript 对象表示法）是一种以纯文本形式书写结构化数据的方式——几乎所有应用都用它来保存或传输信息，因为任何编程语言都能读懂它。">JSON</span><span data-zh="——纯文本，并给它打上当前时间戳。"> — plain text — and stamp it with the current time.</span></p>
+              <p class="tl" data-zh="如果体积超过 256KB 就拒绝保存，这样一局失控的游戏也不会悄悄把你浏览器的存储空间占满。">Refuse to save if it's grown past 256KB, so one runaway game can't quietly fill up your browser's storage.</p>
+              <p class="tl"><span data-zh="把这段文本写入">Write that text into </span><span class="term" data-definition="localStorage is a small text-only storage locker built into every browser, tied to this one website. Data saved there survives closing the tab or restarting the phone, but never leaves the device." data-zh="localStorage" data-definition-zh="localStorage 是每个浏览器内置的一个小型纯文本存储柜，与当前这个网站绑定。存在里面的数据在关闭标签页或重启手机后依然存在，但永远不会离开这台设备。">localStorage</span><span data-zh="，使用一个固定的键名。">, under a fixed key name.</span></p>
+              <p class="tl" data-zh="回报保存是否真的成功了，这样调用者才能在失败时提醒你。">Report back whether the save actually worked, so the caller can warn you if it didn't.</p>
+            </div>
+          </div>
+        </div>
+        <p data-zh="这就是为什么中途关闭应用再重新打开，你会精确地回到离开时的地方——每一次点击都会被写入磁盘，而不仅仅是&ldquo;每轮结束时&rdquo;。">This is why closing the app mid-game and reopening it puts you right back where you left off — every single tap, not just "end of round," gets written to disk.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right — toggleTeamSeat only describes the new state; it never touches localStorage. Every state change is funneled through updateState → persistState so saving can't be forgotten."
+               data-explanation-wrong="Not quite. Look again at toggleTeamSeat — there's no localStorage.setItem inside it. Saving happens in a separate, shared function that every update passes through."
+               data-explanation-right-zh="正确——toggleTeamSeat 只负责描述新的状态，它从不直接接触 localStorage。每一次状态变化都会经过 updateState → persistState，所以保存这件事不会被遗漏。"
+               data-explanation-wrong-zh="不太对。再看看 toggleTeamSeat——里面并没有 localStorage.setItem。保存这件事发生在另一个独立的共享函数里，所有更新都会经过它。">
+            <h3 class="quiz-question" data-zh="假设你要新增一个功能：重命名座位。如果你把重命名逻辑直接写在按钮的 onClick 处理函数里，而不是通过 updateState，会有什么风险？">You're adding a new feature: renaming a seat. If you write the rename logic directly inside a button's onClick handler instead of going through updateState, what's the risk?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="没有风险——onClick 处理函数可以安全地写到任何地方。">None — onClick handlers can safely write anywhere.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="重命名永远不会被保存到 localStorage，因为只有 updateState 会把变化路由经过 persistState。">The rename would never get saved to localStorage, because only updateState routes changes through persistState.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="应用会立刻崩溃。">The app would crash immediately.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Exactly. toggleTeamSeat builds a new object with the spread syntax (...cur) instead of changing cur.pickedTeam directly — that's immutability in action."
+               data-explanation-wrong="Not quite — look at the return line again. It uses { ...cur, pickedTeam: ... } to build a new object, rather than writing cur.pickedTeam.push(seat), which would change the old one in place."
+               data-explanation-right-zh="没错。toggleTeamSeat 使用展开语法（...cur）构建了一个新对象，而不是直接修改 cur.pickedTeam——这正是不可变性的实际体现。"
+               data-explanation-wrong-zh="不太对——再看看那行 return。它用 { ...cur, pickedTeam: ... } 构建了一个新对象，而不是写 cur.pickedTeam.push(seat)（那样会原地修改旧对象）。">
+            <h3 class="quiz-question" data-zh="在 toggleTeamSeat 中，代码是如何避免直接修改旧游戏状态的？">In toggleTeamSeat, how does the code avoid changing the old game state directly?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="它用 { ...cur, pickedTeam: ... } 构建并返回一个全新的对象，而不是编辑 cur 的字段。">It builds and returns a whole new object with { ...cur, pickedTeam: ... } instead of editing cur's fields.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="它没有避免——它用 .push() 直接编辑了 cur.pickedTeam。">It doesn't — it edits cur.pickedTeam directly with .push().</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')" data-zh="检查答案">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title" data-zh="认识主要角色">Meet the Cast</h1>
+      <p class="module-subtitle" data-zh="九个文件，每个都只做一件事。搞清楚谁负责什么，你就知道该把 AI 编程工具具体指向哪里。">Nine files, each with exactly one job. Know who does what, and you'll know exactly where to point an AI coding tool.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="这是一支管弦乐队，不是独角戏">An orchestra, not a solo act</h2>
+        <p><span data-zh="把这个代码库想象成一支管弦乐队。">Think of this codebase like an orchestra. </span><code>game.ts</code><span data-zh=" 是乐谱——每位演奏者都必须遵守的规则，一次性写下，从不打破。">is the sheet music — the rules every player must follow, written down once and never broken. </span><code>page.tsx</code><span data-zh=" 是指挥，像握着指挥棒一样持有当前状态，并向每个声部发出提示。其余的一切都是乐器声部：只负责演奏自己的那部分，不多不少。"> is the conductor, holding the current state like a baton and cueing every section. Everything else is an instrument section: it plays its part and nothing more.</span></p>
+        <div class="callout callout-info">
+          <div class="callout-icon">🎻</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="为什么这对引导 AI 很重要">Why this matters for steering AI</strong>
+            <p><span data-zh="当你要求 AI 工具&ldquo;新增一条规则：被否决的投票会跳过队长&rdquo;时，你希望它编辑的是乐谱（">When you ask an AI tool to "add a rule that a rejected vote skips the leader," you want it editing the sheet music (</span><code>game.ts</code><span data-zh="），而不是在某个随机的乐器声部里即兴发挥。了解了这支&ldquo;乐队&rdquo;，你就能准确地这样表达。">), not improvising inside a random instrument's part. Knowing the cast means you can say exactly that.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="文件地图">The file map</h2>
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">src/lib/</span>
+            <span class="ft-desc" data-zh="规则与共享逻辑——这里不涉及任何视觉展示">Rules and shared logic — no visuals live here</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">game.ts</span><span class="ft-desc" data-zh="规则手册：游戏状态的结构、角色配置、任务人数计算、存档/读档校验">The rulebook: game state shape, role setup, quest math, save/load validation</span></div>
+              <div class="ft-file"><span class="ft-name">i18n.tsx</span><span class="ft-desc" data-zh="翻译官：在中英文之间切换每一个界面文案">The translator: swaps every label between Chinese and English</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">src/app/</span>
+            <span class="ft-desc" data-zh="浏览器实际渲染的页面">The pages the browser actually renders</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">page.tsx</span><span class="ft-desc" data-zh="指挥：持有当前游戏状态，负责屏幕之间的路由，并把每一次点击接入 game.ts">The conductor: owns the current game, routes between screens, wires every click to game.ts</span></div>
+              <div class="ft-folder"><span class="ft-name">api/feedback/</span><span class="ft-desc" data-zh="这个应用与服务器对话的唯一场所">The one place this app talks to a server</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">src/components/</span>
+            <span class="ft-desc" data-zh="乐器声部——每一个都负责渲染屏幕上的一部分">Instrument sections — each renders one part of the screen</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">SeatSvg.tsx</span><span class="ft-desc" data-zh="绘制圆桌和每一个座位">Draws the round table and every seat</span></div>
+              <div class="ft-file"><span class="ft-name">IdentityTagsPanel.tsx</span><span class="ft-desc" data-zh="让你给某个座位标记一个怀疑的角色">Lets you tag a seat with a suspected role</span></div>
+              <div class="ft-file"><span class="ft-name">MissionPager / MissionReview / LaunchHistory / VoteResultGraphic</span><span class="ft-desc" data-zh="同一份任务历史的不同视图">Different views onto the same quest history</span></div>
+              <div class="ft-file"><span class="ft-name">TutorialGuide.tsx</span><span class="ft-desc" data-zh="面向新玩家的高亮引导教程">The spotlight tour for first-time players</span></div>
+              <div class="ft-file"><span class="ft-name">FeedbackWidget.tsx</span><span class="ft-desc" data-zh="截图、标注并发送 bug 反馈">Screenshot, annotate, and send a bug report</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="规则手册究竟知道些什么">What the rulebook actually knows</h2>
+        <p><span data-zh="判断一个">A big tell that a </span><span class="term" data-definition="A React component is a self-contained, reusable chunk of UI — like SeatSvg, which knows how to draw a round table but has no opinion about whose turn it is." data-zh="组件" data-definition-zh="React 组件是一个自包含、可复用的界面片段——比如 SeatSvg，它知道如何画一张圆桌，但对&ldquo;现在轮到谁&rdquo;毫无主见。">component</span><span data-zh="只是&ldquo;乐器声部&rdquo;而不是规则手册的一个明显标志：它从不自行编造游戏数学逻辑。这里有一个真实的例子——一局游戏需要多少&ldquo;忠臣&rdquo;和&ldquo;爪牙&rdquo;，直接来自 "> is "just an instrument section" and not the rulebook: it never invents game math on its own. Here's a real example — how many Loyal Servants and Minions a game needs, straight from </span><code>game.ts</code><span data-zh="：">:</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export</span> <span class="code-keyword">function</span> <span class="code-function">togglesFor</span>(playerCount: number): Record&lt;RoleKey, boolean&gt; {</span>
+<span class="code-line">  <span class="code-keyword">const</span> cfg = defaultConfig[playerCount];</span>
+<span class="code-line">  <span class="code-keyword">return</span> roleKeys.<span class="code-function">reduce</span>((acc, key) =&gt; {</span>
+<span class="code-line">    acc[key] = cfg.specials.includes(key);</span>
+<span class="code-line">    <span class="code-keyword">return</span> acc;</span>
+<span class="code-line">  }, {} <span class="code-keyword">as</span> Record&lt;RoleKey, boolean&gt;);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="根据参与人数，算出默认会启用哪些特殊角色。">Given how many people are playing, figure out which special roles are on by default.</p>
+              <p class="tl" data-zh="查找该人数对应的官方规则（5 到 10 名玩家各有一张固定的表）。">Look up the official rules for that player count (5 to 10 players each have a fixed table).</p>
+              <p class="tl" data-zh="遍历每一个可能的角色（梅林、派西维尔、摩甘娜……）">Walk through every possible role (Merlin, Percival, Morgana...)</p>
+              <p class="tl" data-zh="只有在这个人数的官方配置里包含它时，才把它标记为&ldquo;启用&rdquo;。">and mark it "on" only if that player count's official setup includes it.</p>
+              <p class="tl" data-zh="返回一份清单：每个角色对应一个是/否。">Hand back a checklist: one true/false per role.</p>
+            </div>
+          </div>
+        </div>
+        <p><span data-zh="在 ">Nowhere in </span><code>SeatSvg.tsx</code><span data-zh=" 或任何其他组件里，你都找不到任务人数表或角色数量——它们只会">or any other component will you find quest-size tables or role counts — they only ever </span><em data-zh="展示"> display</em><span data-zh=" </span><code>game.ts</code><span data-zh=" 所决定的结果。"> what <code>game.ts</code> decides.</span></p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="试试这张架构图">Try the architecture map</h2>
+        <p data-zh="点击每一个部分，看看它各自的职责。注意&ldquo;乐器声部&rdquo;区域里没有任何一个组件会直接与浏览器存储对话——只有指挥才会。">Click each piece to see its one job. Notice how nothing in the "Instrument Sections" zone talks to the browser's storage directly — only the Conductor does.</p>
+
+        <div class="arch-diagram">
+          <div class="arch-zone arch-zone-rules">
+            <h4 class="arch-zone-label" data-zh="规则手册">The Rulebook</h4>
+            <div class="arch-component" data-desc="game.ts: defines GameState's shape, the official quest-size tables, role setups, and every pure function that computes 'what happens next' — team picks, vote resolution, quest results, save validation." data-desc-zh="game.ts：定义了 GameState 的结构、官方任务人数表、角色配置，以及每一个计算&ldquo;接下来会发生什么&rdquo;的纯函数——选队、投票结算、任务结果、存档校验。" onclick="showArchDesc(this)">
+              <div class="arch-icon">📜</div><span>game.ts</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-conductor">
+            <h4 class="arch-zone-label" data-zh="指挥">The Conductor</h4>
+            <div class="arch-component" data-desc="page.tsx: holds the one live GameState object, decides which screen is showing, and is the only place that calls persistState to write to localStorage." data-desc-zh="page.tsx：持有唯一那份实时的 GameState 对象，决定当前显示哪个屏幕，也是唯一调用 persistState 写入 localStorage 的地方。" onclick="showArchDesc(this)">
+              <div class="arch-icon">🎼</div><span>page.tsx</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-instruments">
+            <h4 class="arch-zone-label" data-zh="乐器声部">Instrument Sections</h4>
+            <div class="arch-component" data-desc="SeatSvg: draws the round table, seats, leader ring, and team/vote highlighting. Reports taps upward — never decides what a tap means." data-desc-zh="SeatSvg：绘制圆桌、座位、队长指示环，以及队伍/投票的高亮效果。只会向上上报点击——从不决定一次点击意味着什么。" onclick="showArchDesc(this)">
+              <div class="arch-icon">🪑</div><span>SeatSvg</span>
+            </div>
+            <div class="arch-component" data-desc="IdentityTagsPanel: lets you pick a role tag, then hands seat taps back to page.tsx to record who you think holds it." data-desc-zh="IdentityTagsPanel：让你选择一个角色标签，然后把座位点击交回给 page.tsx，记录你认为谁拥有这个角色。" onclick="showArchDesc(this)">
+              <div class="arch-icon">🏷️</div><span>IdentityTagsPanel</span>
+            </div>
+            <div class="arch-component" data-desc="MissionPager / MissionReview / LaunchHistory / VoteResultGraphic: four different lenses on the same launchLog history — tabs, detail cards, and vote bar charts." data-desc-zh="MissionPager / MissionReview / LaunchHistory / VoteResultGraphic：对同一份 launchLog 历史记录的四种不同视角——标签页、详情卡片和投票柱状图。" onclick="showArchDesc(this)">
+              <div class="arch-icon">📊</div><span>Review components</span>
+            </div>
+            <div class="arch-component" data-desc="TutorialGuide: a spotlight overlay that points at real UI elements using CSS selectors — it never touches game state." data-desc-zh="TutorialGuide：一个通过 CSS 选择器指向真实界面元素的高亮遮罩层——它从不接触游戏状态。" onclick="showArchDesc(this)">
+              <div class="arch-icon">💡</div><span>TutorialGuide</span>
+            </div>
+            <div class="arch-component" data-desc="FeedbackWidget: screenshots the page, lets you annotate it, and posts the result to a server API route — the one component that leaves the browser." data-desc-zh="FeedbackWidget：为页面截图，让你在上面标注，再把结果发送到服务器的 API 路由——是唯一一个会离开浏览器的组件。" onclick="showArchDesc(this)">
+              <div class="arch-icon">📮</div><span>FeedbackWidget</span>
+            </div>
+          </div>
+          <div class="arch-description" id="arch-desc" data-zh="点击任意一个部分，了解它的职责">Click any piece to learn what it does</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="场景">Scenario</span>
+              <p data-zh="你想新增一条家规：&ldquo;如果同一支队伍连续两次被提议，就自动否决。&rdquo;AI 编程工具最应该先编辑哪个文件？">You want to add a house rule: "if the same team is proposed twice in a row, auto-reject it." Which file should an AI coding tool most likely edit first?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="game"
+                 data-explanation-right="Right — this is quest logic (a rule about how proposals resolve), which belongs in game.ts alongside the other pure rule functions like togglesFor and finalizeMission. Once the rule exists there, page.tsx would just call it."
+                 data-explanation-wrong="Not quite. SeatSvg only draws the table; it has no idea what 'the same team twice' even means. This is a rules question, which belongs in game.ts."
+                 data-explanation-right-zh="正确——这是一条任务逻辑（关于提议如何结算的规则），应该放进 game.ts，和 togglesFor、finalizeMission 等其他纯规则函数放在一起。规则一旦存在于那里，page.tsx 只需要调用它即可。"
+                 data-explanation-wrong-zh="不太对。SeatSvg 只负责画桌子，它根本不知道&ldquo;同一支队伍两次&rdquo;是什么意思。这是一个规则问题，应该放进 game.ts。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="seat" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="SeatSvg.tsx——它是显示选队情况的组件">SeatSvg.tsx — it's the component that shows team picks</span></button>
+                <button class="quiz-option" data-value="game" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="game.ts——这是一条关于提议如何结算的新规则">game.ts — it's a new rule about how proposals resolve</span></button>
+                <button class="quiz-option" data-value="feedback" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="FeedbackWidget.tsx——它负责处理用户输入">FeedbackWidget.tsx — it handles user input</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')" data-zh="检查答案">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title" data-zh="组件之间如何对话">How the Pieces Talk</h1>
+      <p class="module-subtitle" data-zh="没有谁能单独行动。理解了这条规则，&ldquo;怎么没显示出来&rdquo;这类 bug 就不再神秘。">Nobody moves on their own. Understand this rule and "it's not showing up" bugs stop being mysterious.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="puppeteer 手中的提线">The puppeteer's strings</h2>
+        <p><span data-zh="把">Picture </span><code>page.tsx</code><span data-zh=" 想象成一个提线木偶师，">as a puppeteer, and </span><code>SeatSvg</code><span data-zh=" 想象成台上的木偶。木偶师决定木偶展示的一切——谁是队长、谁在队伍里、谁投了什么票——通过向下拉动提线来控制它。这些线就叫作"> as a puppet on stage. The puppeteer decides everything the puppet shows — which seat is the leader, who's on the team, who voted what — by pulling strings down onto it. Those strings are called </span><span class="term" data-definition="Props (short for 'properties') are the pieces of data a parent component hands down to a child component, like leaderSeat or voteMap. The child can display them, but can't change them directly." data-zh="props" data-definition-zh="props（&ldquo;properties&rdquo; 的缩写）是父组件向子组件传递下去的数据，比如 leaderSeat 或 voteMap。子组件可以展示它们，但不能直接修改它们。">props</span><span data-zh="。">.</span></p>
+        <p><span data-zh="木偶自己够不到、也没法拉动自己身上的线。如果它想让某件事发生变化——比如说，点击了 4 号座位——它唯一能做的，就是拽一下木偶师专门为此留下的">The puppet can't reach up and move its own strings. If it wants something to change — say, a tap on seat 4 — it can only tug back on </span><em data-zh="那一根">one</em><span data-zh="线：一个"> string the puppeteer left dangling for exactly that purpose: a </span><span class="term" data-definition="A callback is a function one piece of code hands to another, to be called later when something happens — like leaving a phone number so someone can call you back instead of you calling them repeatedly to check in." data-zh="回调函数" data-definition-zh="回调（callback）是一段代码交给另一段代码的函数，等某件事发生时再被调用——就像留下一个电话号码，让对方在有事时给你打回来，而不是你反复打电话去确认。">callback</span><span data-zh="。">.</span></p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">↓</div>
+            <div class="step-body" data-zh="<strong>Props 向下流动</strong><p>page.tsx 把 leaderSeat、teamSeats、voteMap 和 identityTags 作为普通数据传给 SeatSvg。</p>"><strong>Props flow down</strong><p>page.tsx passes leaderSeat, teamSeats, voteMap, and identityTags into SeatSvg as plain data.</p></div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">↑</div>
+            <div class="step-body" data-zh="<strong>回调向上流动</strong><p>SeatSvg 从不编辑这些数据。它只会调用 onSeatClick(seat)——一个 page.tsx 交给它的函数——然后等待。</p>"><strong>Callbacks flow up</strong><p>SeatSvg never edits that data. It only calls onSeatClick(seat) — a function page.tsx handed it — and waits.</p></div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">🔁</div>
+            <div class="step-body" data-zh="<strong>page.tsx 做决定，然后重绘</strong><p>page.tsx 运行真正的逻辑，产生新的状态，再把新的 props 向下传回去。木偶重新绘制自己，与之匹配。</p>"><strong>page.tsx decides, then redraws</strong><p>page.tsx runs the real logic, produces a new state, and passes fresh props back down. The puppet redraws itself to match.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="回调函数在真实场景中的样子">The callback in the wild</h2>
+        <p><span data-zh="在投票阶段，每一次座位点击都被接入了 ">During the voting phase, every seat tap is wired to this function in </span><code>page.tsx</code><span data-zh=" 中的这个函数："> in <code>page.tsx</code>:</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">toggleVoteSeat</span>(seat: number) {</span>
+<span class="code-line">  <span class="code-function">updateState</span>((cur) =&gt; {</span>
+<span class="code-line">    <span class="code-keyword">const</span> votes = { ...cur.votes };</span>
+<span class="code-line">    votes[seat] = votes[seat] === <span class="code-string">"agree"</span> ? <span class="code-string">"reject"</span> : <span class="code-string">"agree"</span>;</span>
+<span class="code-line">    <span class="code-keyword">return</span> { ...cur, votes };</span>
+<span class="code-line">  });</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="当投票阶段中座位 N 被点击时……">When seat N is tapped during voting...</p>
+              <p class="tl" data-zh="……开始一次状态更新，先复制到目前为止的投票情况。">...start a state update, copying the current votes so far.</p>
+              <p class="tl" data-zh="翻转该座位的投票：同意变为反对，反对（或未投）变为同意。">Flip that seat's vote: agree becomes reject, reject (or unset) becomes agree.</p>
+              <p class="tl" data-zh="返回带有更新后投票结果的新状态。">Hand back the new state with the updated votes.</p>
+            </div>
+          </div>
+        </div>
+
+        <p><code>SeatSvg</code><span data-zh=" 本身完全不知道&ldquo;同意&rdquo;或&ldquo;反对&rdquo;究竟意味着什么——它只是渲染拿到的 "> itself has zero knowledge of what "agree" or "reject" even means — it just renders whatever </span><code>voteMap</code><span data-zh=" prop，并通过 "> prop it was given, and reports taps through </span><code>onSeatClick</code><span data-zh="上报点击。每一个座位的颜色、勾选标记和文字标签，都是 ">. Every seat's color, checkmark, and label is a direct reflection of state living up in </span><code>page.tsx</code><span data-zh=" 中状态的直接映射。">.</span></p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="看看这场对话是怎么发生的">Watch the conversation happen</h2>
+        <p data-zh="下面展示的是当所有座位都投完票、你点击&ldquo;结算投票&rdquo;之后，&ldquo;结算投票&rdquo;这件事在各个组件之间实际发生的对话。">Here's what "resolving the vote" actually looks like as a conversation between the pieces, once all seats have voted and you tap "Resolve vote."</p>
+
+        <div class="chat-window" id="chat-module3">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="you" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">👆</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-1)" data-zh="你">You</span><p data-zh="8 个座位都投完票了。现在点击&ldquo;结算投票&rdquo;。">All 8 seats have voted. Tapping "Resolve vote" now.</p></div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="page" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">🎼</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-2)">page.tsx</span><p data-zh="正在统计票数：5 票同意，3 票反对。多数通过——队伍获批。">Counting votes: 5 agree, 3 reject. That's a majority — the team is approved.</p></div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="game" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">📜</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-3)">game.ts (logLaunch)</span><p data-zh="收到——我会把这次提议、队伍和投票结果一起加进永久的 launchLog 历史记录里。">Got it — I'll add this proposal, its team, and its votes to the permanent launchLog history.</p></div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="page" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">🎼</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-2)">page.tsx</span><p data-zh="既然通过了，我要把阶段切换到&ldquo;任务&rdquo;，并把连续否决计数器重置为零。">Since it passed, I'm switching the phase to "mission" and resetting the fail-vote counter to zero.</p></div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="seatsvg" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">🪑</div>
+              <div class="chat-bubble"><span class="chat-sender" style="color: var(--color-actor-4)">SeatSvg</span><p data-zh="收到新的 props 了——我要为任务界面重绘桌面。这不是我的决定，只是我的工作。">New props arrived — I'll redraw the table for the quest screen. Not my decision, just my job.</p></div>
+            </div>
+          </div>
+          <div class="chat-typing" id="chat-typing" style="display:none">
+            <div class="chat-avatar" id="typing-avatar">?</div>
+            <div class="chat-typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>
+          </div>
+          <div class="chat-controls">
+            <button class="btn chat-next-btn" data-zh="下一条消息">Next Message</button>
+            <button class="btn chat-all-btn" data-zh="全部播放">Play All</button>
+            <button class="btn chat-reset-btn" data-zh="重播">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="单向数据流">Unidirectional data flow</strong>
+            <p data-zh="注意 SeatSvg 从不回头和 game.ts 对话，game.ts 也从不伸手进入 SeatSvg。数据只沿一个环流动：作为 props 向下，作为回调向上。正是这种约束让界面变得可预测——当屏幕上出现问题时，你总是知道该从最上层开始，一路往下查，而不是随便乱猜。">Notice SeatSvg never talks back to game.ts, and game.ts never reaches into SeatSvg. Data only ever flows in one loop: down as props, up as callbacks. This discipline is what makes a UI predictable — when something on screen is wrong, you always know to start at the top and work down, never guess randomly.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="调试场景">Debugging scenario</span>
+              <p data-zh="有玩家反馈：&ldquo;我在投票时点击了 6 号座位，但他们的投票好像一直没有生效——座位还是灰色的。&rdquo;根据&ldquo;props 向下、回调向上&rdquo;这个模式，你会先从哪里查起？">A player reports: "I tapped seat 6 during voting, but their vote never seems to register — the seat stays gray." Based on the props-down, callbacks-up pattern, where would you look first?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="callback"
+                 data-explanation-right="Exactly. SeatSvg only reports taps through onSeatClick — it has no ability to update votes itself. If the callback wiring is broken or the tap doesn't propagate to toggleVoteSeat, page.tsx's state (and therefore voteMap) never changes, so the redraw never happens."
+                 data-explanation-wrong="Not quite. SeatSvg doesn't decide what a vote means — it can only report a tap upward through its onSeatClick callback prop. If that wiring is broken, page.tsx's state never updates, and the seat has nothing new to draw."
+                 data-explanation-right-zh="没错。SeatSvg 只会通过 onSeatClick 上报点击——它自己没有能力更新投票。如果回调的连接断了，或者点击没能传递到 toggleVoteSeat，page.tsx 的状态（以及因此的 voteMap）就永远不会改变，重绘也就不会发生。"
+                 data-explanation-wrong-zh="不太对。SeatSvg 并不决定投票意味着什么——它只能通过 onSeatClick 这个回调 prop 向上报告点击。如果这条连接断了，page.tsx 的状态永远不会更新，座位也就没有新东西可画。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="css" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="检查 SeatSvg 的 CSS 颜色——填充颜色一定是错的">Check SeatSvg's CSS colors — the fill color must be wrong</span></button>
+                <button class="quiz-option" data-value="callback" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="检查点击是否正确到达了 onSeatClick，并调用了 page.tsx 里的 toggleVoteSeat">Check whether the tap is correctly reaching onSeatClick and calling toggleVoteSeat in page.tsx</span></button>
+                <button class="quiz-option" data-value="storage" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="直接在浏览器里检查 localStorage——bug 一定在那里">Check localStorage directly in the browser — the bug must be there</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')" data-zh="检查答案">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title" data-zh="离开浏览器">Leaving the Browser</h1>
+      <p class="module-subtitle" data-zh="这个应用里几乎所有东西都不会离开你的手机。这里是唯一一条会离开的路径——以及守在门口的保镖。">Almost everything in this app never leaves your phone. Here's the one path that does — and the bouncer guarding its door.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="两种截然不同的&ldquo;保存&rdquo;">Two very different kinds of "saving"</h2>
+        <p><span data-zh="你在第一模块已经认识了一个目的地：">You already met one destination in Module 1: </span><code>localStorage</code><span data-zh="，它从不离开设备。整个应用里只有另外一个目的地，而且规模要大得多：通过角落里的 📮 按钮提交反馈。">, which never leaves the device. There's exactly one other destination in this entire app, and it's much bigger: submitting feedback through the 📮 button in the corner.</span></p>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">💾</div>
+            <h4 class="pattern-title">localStorage</h4>
+            <p class="pattern-desc" data-zh="每一次游戏状态都会不断地被保存，永远留在这一台设备上。不涉及任何网络请求——它更像是一本记事本，而不是一个邮箱。">Every game state, saved constantly, stays on this one device forever. No network request involved — it's closer to a notepad than a mailbox.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">📮</div>
+            <h4 class="pattern-title" data-zh="反馈提交">Feedback submission</h4>
+            <p class="pattern-desc"><span data-zh="一次真正的">A real </span><span class="term" data-definition="A POST request is a network message that sends data to a server, asking it to create or change something — as opposed to a GET request, which just asks for information back. Submitting a form is a classic POST." data-zh="POST 请求" data-definition-zh="POST 请求是一种网络消息，把数据发送给服务器，要求它创建或修改某些内容——与 GET 请求不同，GET 只是索要信息返回。提交表单就是典型的 POST。">POST request</span><span data-zh="发送到服务器，服务器会创建一个 GitHub Issue。这是这个应用唯一的对外出口。"> to a server, which creates a GitHub Issue. This is the app's only outbound door.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="门口的保镖">The bouncer at the door</h2>
+        <p><span data-zh="任何离开浏览器的东西都需要经过一道检查关卡。这道关卡就在 ">Anything that leaves the browser needs a checkpoint. That checkpoint lives in </span><code>src/app/api/feedback/route.ts</code><span data-zh=" 中——这个应用唯一的 "> — the app's one </span><span class="term" data-definition="An API route is server-side code that runs on a server (never in the browser), reachable at a specific web address. The browser sends it a request; it sends back a response. It's the only place this app can keep secrets safe." data-zh="API 路由" data-definition-zh="API 路由是运行在服务器上（从不在浏览器里运行）的代码，可以通过一个特定的网址访问到。浏览器向它发送请求，它再返回响应。这是这个应用唯一能安全保管秘密信息的地方。">API route</span><span data-zh="。可以把它想象成夜店门口检查手环的保镖：每位访客每分钟最多提交 3 次。">. Think of it like a nightclub bouncer checking wristbands: no more than 3 submissions per visitor per minute.</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">rateLimited</span>(key: string) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> now = <span class="code-property">Date</span>.<span class="code-function">now</span>();</span>
+<span class="code-line">  <span class="code-keyword">const</span> recent = (hits.<span class="code-function">get</span>(key) ?? []).<span class="code-function">filter</span>((t) =&gt; now - t &lt; RATE_LIMIT.windowMs);</span>
+<span class="code-line">  <span class="code-keyword">if</span> (recent.length &gt;= RATE_LIMIT.max) {</span>
+<span class="code-line">    hits.<span class="code-function">set</span>(key, recent);</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-keyword">true</span>;</span>
+<span class="code-line">  }</span>
+<span class="code-line">  recent.<span class="code-function">push</span>(now);</span>
+<span class="code-line">  hits.<span class="code-function">set</span>(key, recent);</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="对这位访客的识别键，检查一下：过去 60 秒里来了多少次提交？">For this visitor's identifying key, check: how many submissions came in during the last 60 seconds?</p>
+              <p class="tl" data-zh="丢弃一分钟之前的记录——只有最近的&ldquo;手环扫描&rdquo;才算数。">Throw out anything older than a minute — only recent wristband scans count.</p>
+              <p class="tl"><span data-zh="如果他们在这个时间窗口内已经达到了 3 次，就把他们拦下来（这就是">If they've already hit 3 in the window, turn them away (this is </span><span class="term" data-definition="Rate limiting is a rule that caps how many times something can happen in a given time window — like a bouncer only letting in 3 people per minute so the club doesn't get overwhelmed. It's a common defense against accidental spam or abuse." data-zh="速率限制" data-definition-zh="速率限制是一条规则，限制某件事在给定时间窗口内最多能发生多少次——就像保镖每分钟只放 3 个人进场，避免夜店被挤爆。它是防止误发垃圾信息或滥用的常见手段。">rate limiting</span><span data-zh="）。">).</span></p>
+              <p class="tl" data-zh="否则，给这次新访问打上当前时间戳，放它通过。">Otherwise, stamp this new visit with the current time and let them through.</p>
+            </div>
+          </div>
+        </div>
+        <p data-zh="这一步在你的截图或消息中的任何一个字节被查看之前就会运行——这是最廉价的检查，所以放在最前面。">This runs before a single byte of your screenshot or message is even looked at — it's the cheapest possible check, done first.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="完整旅程，一步一步来看">The full trip, step by step</h2>
+        <p data-zh="一旦通过了保镖这一关，下面就是你的反馈报告实际经过的每一站。">Once you're past the bouncer, here's everywhere your feedback report actually travels.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You annotate the screenshot, write a message, and tap Submit."},
+          {"highlight":"flow-actor-2","label":"The browser POSTs your message, screenshot, and page context to /api/feedback.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"The API route checks your rate limit, trims control characters, and rejects malformed screenshots."},
+          {"highlight":"flow-actor-3","label":"If everything checks out, it uploads your screenshot into the repo&#8217;s feedback-attachments folder.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"Then it creates a new GitHub Issue, linking that screenshot and your device details in the description.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-1","label":"The browser gets back a simple ok: true, and shows you \"Feedback received.\"","packet":true,"from":"actor-3","to":"actor-1"}
+        ]' data-steps-zh='[
+          {"highlight":"flow-actor-1","label":"你在截图上做标注、写下一条消息，然后点击&ldquo;提交&rdquo;。"},
+          {"highlight":"flow-actor-2","label":"浏览器把你的消息、截图和页面上下文一起 POST 到 /api/feedback。","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"API 路由检查你的提交速率，去除控制字符，并拒绝格式错误的截图。"},
+          {"highlight":"flow-actor-3","label":"如果一切都通过检查，它就把你的截图上传到仓库的 feedback-attachments 文件夹中。","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"然后它会创建一个新的 GitHub Issue，在描述里附上截图链接和你的设备信息。","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-1","label":"浏览器收到一个简单的 ok: true 响应，并向你显示&ldquo;反馈已收到&rdquo;。","packet":true,"from":"actor-3","to":"actor-1"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1"><div class="flow-actor-icon">📱</div><span data-zh="你的浏览器">Your Browser</span></div>
+            <div class="flow-actor" id="flow-actor-2"><div class="flow-actor-icon">💂</div><span data-zh="API 路由<br>（那位保镖）">API route<br>(the bouncer)</span></div>
+            <div class="flow-actor" id="flow-actor-3"><div class="flow-actor-icon">🐙</div><span>GitHub</span></div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn" data-zh="下一步">Next Step</button>
+            <button class="btn flow-reset-btn" data-zh="重新开始">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔑</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="为什么 GitHub 令牌永远不会碰到浏览器">Why the GitHub token never touches the browser</strong>
+            <p><span data-zh="API 路由从一个">The API route reads a GitHub access token from an </span><span class="term" data-definition="An environment variable is a named piece of configuration (like a password or setting) that lives outside your code, injected by the server when it starts up. Reading it from code, instead of typing it directly, means it never gets committed or shipped to users." data-zh="环境变量" data-definition-zh="环境变量是一段有名字的配置信息（比如密码或设置项），存在于你的代码之外，在服务器启动时被注入进来。从代码里读取它，而不是直接写死，意味着它永远不会被提交到代码仓库或发布给用户。">environment variable</span><span data-zh="中读取 GitHub 访问令牌——从不把它发送到页面上。任何发送到浏览器的东西，都能被打开开发者工具的人看到，所以真正的机密信息只能存在于服务器上。如果令牌缺失，"> — never sends it to the page. Anything shipped to the browser is visible to anyone who opens developer tools, so a real secret can only ever live on the server. If it's missing, </span><code>githubConfig()</code><span data-zh=" 会返回 null，反馈会安全地失败并提示&ldquo;未配置&rdquo;，而不是半吊子地工作。"> returns null and feedback fails safely with "not configured," rather than half-working.</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly right. Any value the browser can read, a curious user can read too — via dev tools, network inspection, or the page's own JavaScript. Secrets belong exclusively on the server, which is the whole reason api/feedback/route.ts exists as a separate file from the components."
+               data-explanation-wrong="Not quite — speed isn't the reason. The real issue is that any code or data sent to the browser is visible to whoever opens developer tools. A real secret can only stay secret if it never leaves the server."
+               data-explanation-right-zh="完全正确。任何浏览器能读到的值，一个好奇的用户也能读到——通过开发者工具、网络请求检查，或者页面自己的 JavaScript。机密信息只能属于服务器，这正是 api/feedback/route.ts 之所以要作为独立文件、和组件分开存在的全部原因。"
+               data-explanation-wrong-zh="不太对——原因不是速度。真正的问题在于，任何发送到浏览器的代码或数据，都能被打开开发者工具的人看到。只有从不离开服务器，机密信息才能真正保密。">
+            <h3 class="quiz-question" data-zh="为什么 FEEDBACK_GITHUB_TOKEN 只存在于 API 路由中，而从不出现在运行于浏览器中的 FeedbackWidget.tsx 里？">Why does FEEDBACK_GITHUB_TOKEN live only inside the API route, never in FeedbackWidget.tsx (which runs in the browser)?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="因为浏览器代码里嵌入机密信息会运行得更慢。">Because browser code runs slower with secrets embedded in it.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="因为任何发送到浏览器的东西都能被用户检查到——真正的机密信息只有留在服务器上才能保密。">Because anything sent to the browser can be inspected by the user — a real secret only stays secret on the server.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="其实无所谓——两个位置效果一样好。">It doesn't matter — either location works equally well.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="调试场景">Debugging scenario</span>
+              <p data-zh="有人反馈：&ldquo;每次提交反馈都会失败，报 503 错误，提示&lsquo;Could not submit feedback.&rsquo;&rdquo;你检查了部署配置，发现 FEEDBACK_GITHUB_TOKEN 从未被设置过。这是怎么回事？">Someone reports: "Feedback submission fails every time with a 503 error and the message 'Could not submit feedback.'" You check the deploy and see FEEDBACK_GITHUB_TOKEN was never set. What's happening?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="config"
+                 data-explanation-right="Exactly. Without the token, githubConfig() returns null, and deliver() immediately throws 'the feedback service is not configured.' The route catches that and responds with a 503, matching exactly what was reported."
+                 data-explanation-wrong="Not quite. The rate limiter only fires after 3 rapid submissions and returns a 429 with a different message — it wouldn't explain a 503 failing on the very first try."
+                 data-explanation-right-zh="没错。没有令牌的话，githubConfig() 会返回 null，deliver() 会立刻抛出&ldquo;the feedback service is not configured&rdquo;的错误。路由捕获这个错误后返回 503，与反馈的现象完全吻合。"
+                 data-explanation-wrong-zh="不太对。速率限制器只有在快速提交超过 3 次之后才会触发，而且返回的是 429 和另一条提示信息——这解释不了第一次尝试就出现的 503 失败。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="rate" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="这位访客提交太频繁，被速率限制拦下了。">The visitor is being rate-limited for submitting too often.</span></button>
+                <button class="quiz-option" data-value="config" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="githubConfig() 找不到令牌，所以 deliver() 立刻抛出错误，路由返回 503。">githubConfig() finds no token, so deliver() throws immediately and the route returns a 503.</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')" data-zh="检查答案">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title" data-zh="巧妙的小技巧">The Clever Tricks</h1>
+      <p class="module-subtitle" data-zh="两个值得在你自己的项目里借鉴的模式，外加当出问题时该如何像侦探一样思考。">Two patterns worth stealing for your own projects, plus how to think like a debugger when something breaks.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="行李不扫描，绝不轻信">Never trust the suitcase without scanning it</h2>
+        <p><code>localStorage</code><span data-zh=" 只是一个安静躺在你浏览器里的文本文件。任何打开了开发者工具的人都可能把它手动改成一堆垃圾——又或者未来某个版本的应用保存了这个版本完全没预料到的数据结构。在应用加载存档之前，它会先让这份数据经过一道安全关卡："> is just a text file sitting in your browser. Anyone with dev tools open could hand-edit it into garbage — or a future version of the app could save a shape this version doesn't expect. Before the app ever loads a saved game, it runs it through a security checkpoint: </span><code>isSavedGameState</code><span data-zh="，就像安检员在每个行李箱被允许登机之前都要扫描一遍。">, like a scanner checking every bag before it's allowed onto the plane.</span></p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">function</span> <span class="code-function">isVotes</span>(value: unknown, playerCount: number): value <span class="code-keyword">is</span> Record&lt;number, Vote&gt; {</span>
+<span class="code-line">  <span class="code-keyword">if</span> (!<span class="code-function">isRecord</span>(value) || <span class="code-property">Object</span>.<span class="code-function">keys</span>(value).length &gt; playerCount) <span class="code-keyword">return</span> <span class="code-keyword">false</span>;</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-property">Object</span>.<span class="code-function">entries</span>(value).<span class="code-function">every</span>(([seat, vote]) =&gt; (</span>
+<span class="code-line">    <span class="code-function">isSeat</span>(Number(seat), playerCount) &amp;&amp; (vote === <span class="code-string">"agree"</span> || vote === <span class="code-string">"reject"</span>)</span>
+<span class="code-line">  ));</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="给定一个从存储中取出的未知值，判断它是否真的是一份合法的投票记录。">Given some unknown value pulled out of storage, decide whether it's actually a valid votes record.</p>
+              <p class="tl" data-zh="如果它连一个对象都不是，或者条目数比玩家人数还多，直接拒绝。">Reject it outright if it isn't even an object, or has more entries than there are players.</p>
+              <p class="tl" data-zh="否则，逐一检查每一条记录……">Otherwise, check every single entry...</p>
+              <p class="tl" data-zh="……座位号必须是真实存在的，投票必须恰好是&ldquo;同意&rdquo;或&ldquo;反对&rdquo;——没有别的值能蒙混过关。">...the seat number must be real, and the vote must be exactly "agree" or "reject" — nothing else sneaks through.</p>
+            </div>
+          </div>
+        </div>
+
+        <p><span data-zh="这个函数只是 ">This function is one of dozens of tiny checks inside </span><code>isSavedGameState</code><span data-zh="内部数十项细小检查中的一个。只要有一个字段没通过扫描，整份存档就会被丢弃，就当它从未存在过——与其让屏幕用一份被污染的数据勉强拼出一半，不如老老实实提示&ldquo;请开始新游戏&rdquo;。">. If even one field fails its scan, the entire save is thrown out and treated as if it never existed — better an honest "please start a new game" than a screen half-built from corrupted data.</span></p>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="这对你意味着什么">Why this matters for you</strong>
+            <p><span data-zh="任何时候，只要你的应用要从一个你无法完全掌控的地方加载数据——">Any time your app loads data from somewhere you don't fully control — </span><span class="term" data-definition="A type guard is a function that checks whether some unknown data actually matches an expected shape, and tells the rest of the program the answer with confidence. It's the difference between hoping data is safe and verifying it." data-zh="本地存储" data-definition-zh="类型守卫（type guard）是一种函数，用来检查某个未知数据是否真的符合预期的结构，并把结果明确地告诉程序的其他部分。这是&ldquo;祈祷数据是安全的&rdquo;和&ldquo;真正验证过数据安全&rdquo;之间的区别。">local storage</span><span data-zh="、URL、文件上传、另一个网站的 API——都应该假设它可能是错的、被篡改过的，或者来自你自己应用的旧版本。请 AI 工具&ldquo;先验证再信任&rdquo;，而不只是&ldquo;加载它&rdquo;。">, a URL, a file upload, another website's API — assume it could be wrong, tampered with, or from an old version of your own app. Ask an AI tool to "validate this before trusting it," not just "load this."</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="侦探的案情板，而不是一张便利贴">A detective's case board, not a single sticky note</h2>
+        <p data-zh="身份标签面板不会只记住&ldquo;4 号座位被标记为梅林&rdquo;这一个事实。它还会记住你是&ldquo;什么时候&rdquo;做出这个判断的——因为随着游戏进行，你的怀疑会发生变化，回顾第二轮任务时，应该显示你当时相信的内容，而不是你现在相信的内容。">The Identity Tags panel doesn't just remember "seat 4 is tagged Merlin." It remembers <em>when</em> you decided that — because your suspicions change as the game unfolds, and reviewing Quest 2 should show what you believed back then, not what you believe now.</p>
+        <p data-zh="你放置的每一个标签都会被记录为一个带有起始点的事件——一旦你为这个座位重新打标签，还会加上一个结束点。这就像一块软木板，旧的便条不会被擦掉，而是连同日期一起被钉在原地。">Every tag you place is logged as an event with a start point, and — once you retag that seat — an end point. It's a corkboard where old notes stay pinned with their dates instead of being erased.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">export</span> <span class="code-keyword">function</span> <span class="code-function">effectiveIdentityTags</span>(state: GameState, missionIndex: number): Record&lt;number, IdentityTag&gt; {</span>
+<span class="code-line">  <span class="code-keyword">return</span> (state.identityTagEvents ?? []).<span class="code-function">reduce</span>&lt;Record&lt;number, IdentityTag&gt;&gt;((tags, event) =&gt; {</span>
+<span class="code-line">    <span class="code-keyword">if</span> (event.startMission &lt;= missionIndex &amp;&amp; (event.endMission === <span class="code-keyword">undefined</span> || missionIndex &lt; event.endMission)) {</span>
+<span class="code-line">      tags[event.seat] = event.tag;</span>
+<span class="code-line">    }</span>
+<span class="code-line">    <span class="code-keyword">return</span> tags;</span>
+<span class="code-line">  }, {});</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl" data-zh="给定整局游戏，以及&ldquo;我现在正在看哪个任务&rdquo;……">Given the whole game and "which quest am I looking at right now"...</p>
+              <p class="tl" data-zh="……遍历每一个曾经放置过的标签，一条一条地把答案拼出来。">...walk through every tag ever placed, building up the answer one note at a time.</p>
+              <p class="tl" data-zh="只有当一条记录在这个任务之前就已经开始、并且（如果后来被移除了）在这个任务时还没被移除，才算数。">Only count a note if it started by this quest, and (if it was later removed) hadn't been removed yet at this quest.</p>
+              <p class="tl" data-zh="如果算数，这个座位在这个时间点的快照里就显示这个标签。">If it counts, this seat shows that tag for this snapshot in time.</p>
+              <p class="tl" data-zh="继续处理下一条记录。">Move to the next note.</p>
+              <p class="tl" data-zh="返回最终的快照：那个任务当时案情板的真实样子。">Hand back the finished snapshot: exactly what the board looked like at that quest.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🕰️</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="记录事件，而不是覆写状态">Log events, don't overwrite state</strong>
+            <p data-zh="这是一个通用模式：与其只存储&ldquo;当前的值&rdquo;、并在每次它变化时丢失历史，不如存储一份带日期的事件列表，需要时再按需计算出&ldquo;截至任意时间点的值&rdquo;。这在前期会多写一点代码，却能免费换来一份可回溯的完整历史。">This is a general pattern: instead of storing "the current value" and losing history every time it changes, store a list of dated events and compute "the value as of any point in time" on demand. It costs a little more code up front and buys you a rewindable history for free.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="找出这个 bug">Spot the bug</h2>
+        <p><span data-zh="这里是第一模块 ">Here's a broken rewrite of </span><code>toggleTeamSeat</code><span data-zh=" 的一个被改坏的版本。它看起来几乎一模一样——但打破了你在那里学到的不可变性规则。点击有问题的那一行。"> from Module 1. It looks almost identical — but breaks the immutability rule you learned there. Click the line that's the problem.</span></p>
+
+        <div class="bug-challenge">
+          <h3 data-zh="找出这段重写代码中的 bug：">Find the bug in this rewrite:</h3>
+          <div class="bug-code">
+            <div class="bug-line" data-line="1" onclick="checkBugLine(this, false)"><span class="line-num">1</span><code>function toggleTeamSeat(seat) {</code></div>
+            <div class="bug-line" data-line="2" onclick="checkBugLine(this, false)"><span class="line-num">2</span><code>  updateState((cur) => {</code></div>
+            <div class="bug-line bug-target" data-line="3" data-explanation="cur.pickedTeam.push(seat) changes the existing array in place — the exact 'editing the old page' move the flipbook principle warns against. React can't tell anything changed, because cur is literally the same object as before. Fix: return a new array, like [...cur.pickedTeam, seat]." data-explanation-zh="cur.pickedTeam.push(seat) 原地修改了已有的数组——这正是翻页本原理警告我们不要做的&ldquo;编辑旧页面&rdquo;那种操作。React 完全无法察觉任何变化，因为 cur 和之前是同一个对象。修复方法：返回一个新数组，比如 [...cur.pickedTeam, seat]。" onclick="checkBugLine(this, true)"><span class="line-num">3</span><code>    if (!cur.pickedTeam.includes(seat)) cur.pickedTeam.push(seat);</code></div>
+            <div class="bug-line" data-line="4" onclick="checkBugLine(this, false)"><span class="line-num">4</span><code>    return cur;</code></div>
+            <div class="bug-line" data-line="5" onclick="checkBugLine(this, false)"><span class="line-num">5</span><code>  });</code></div>
+            <div class="bug-line" data-line="6" onclick="checkBugLine(this, false)"><span class="line-num">6</span><code>}</code></div>
+          </div>
+          <div class="bug-feedback" id="bug-feedback"></div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading" data-zh="检验你的理解">Check your understanding</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label" data-zh="架构决策">Architecture decision</span>
+              <p data-zh="你正在为另一款完全不同的桌游从零开始构建一个类似的记录伴侣应用。一位队友建议只存储&ldquo;当前谁被标记成了什么角色&rdquo;，每次标签变化时直接覆写，以求代码更简单。基于你在这里学到的 identityTagEvents 的作用，你会怎么回应？">You're building a similar note-taking companion for a different tabletop game from scratch. A teammate suggests storing only "who is currently tagged what" and overwriting it every time a tag changes, to keep the code simpler. Based on what identityTagEvents does here, what would you tell them?</p>
+            </div>
+            <div class="quiz-question-block"
+                 data-correct="history"
+                 data-explanation-right="Right. Overwriting loses the ability to answer 'what did I believe back when I was reviewing Quest 2?' — which is exactly the feature effectiveIdentityTags exists to provide. The event-log approach costs a bit more code but keeps that history available for free."
+                 data-explanation-wrong="Not quite — simplicity has a real cost here. If you only store the current tag and overwrite it, you permanently lose the ability to show what a player believed at an earlier point in the game, which this app's quest-review screens depend on."
+                 data-explanation-right-zh="没错。直接覆写会让你永远无法回答&ldquo;我在回顾第二轮任务时当时相信的是什么&rdquo;——而这正是 effectiveIdentityTags 存在的意义。事件日志的做法会多写一点代码，但换来了免费保留的历史记录。"
+                 data-explanation-wrong-zh="不太对——&ldquo;简单&rdquo;在这里是有真实代价的。如果你只存储当前标签并直接覆写，你会永久失去展示玩家在游戏早期相信过什么的能力，而这正是这个应用的任务回顾界面所依赖的功能。">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="simple" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="同意——更简单的存储方式没有什么值得担心的缺点。">Agree — simpler storage with no downsides worth worrying about.</span></button>
+                <button class="quiz-option" data-value="history" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="提出异议——直接覆写会让你失去回顾&ldquo;游戏早期你相信过什么&rdquo;的能力，而这正是回顾界面存在的全部意义。">Push back — overwriting loses the ability to review what you believed at an earlier point in the game, which is the whole point of the review screens.</span></button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. Because every update in this app goes through a pure function that takes the old state and returns a new one, you can always ask 'which function produced this wrong value?' and check it in isolation — no need to hunt through scattered mutations across the codebase."
+               data-explanation-wrong="Not quite. There's no need to add logging everywhere or rewrite the whole state system — the app's existing structure (pure functions in, pure functions out) already makes it possible to isolate exactly which function produced a bad state."
+               data-explanation-right-zh="没错。因为这个应用里的每一次更新都会经过一个纯函数——接收旧状态，返回新状态——你总是可以问：&ldquo;是哪个函数产生了这个错误的值？&rdquo;，然后单独检查它，不需要在代码库里到处翻找散落的状态修改。"
+               data-explanation-wrong-zh="不太对。没必要到处加日志，也没必要重写整个状态系统——这个应用现有的结构（纯函数进、纯函数出）已经让你可以精确定位是哪个函数产生了错误的状态。">
+            <h3 class="quiz-question" data-zh="从回顾界面编辑一个任务结果之后，结果看起来不对了。根据你目前学到的关于状态如何在这个应用中流动的一切，最直接的排查方式是什么？">A quest result looks wrong after editing it from the review screen. Given everything you've learned about how state changes flow through this app, what's the most direct way to track down the bug?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="在每个组件里到处加 console.log，指望能碰巧发现点什么。">Add console.log everywhere in every component, hoping something stands out.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="把整个状态系统推倒重写，因为现有的这套大概率不可靠。">Rewrite the state system from scratch, since the current one is probably unreliable.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span data-zh="追踪是 game.ts 里的哪个纯函数产生了新状态（大概率是 editMissionRecord），然后单独检查它的逻辑。">Trace which pure function in game.ts produced the new state (probably editMissionRecord) and check its logic in isolation.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')" data-zh="检查答案">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')" data-zh="重新再来">Try Again</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <div class="callout callout-info">
+          <div class="callout-icon">🏁</div>
+          <div class="callout-content">
+            <strong class="callout-title" data-zh="你现在所到达的地方">Where you've ended up</strong>
+            <p data-zh="现在你已经了解了一个小型、组织良好的 React 应用的基本形态：一份由纯函数组成的规则手册，一个持有状态的指挥，只负责渲染 props 和上报回调的乐器组件，一扇被小心守卫的通往外部世界的门，以及在每一个数据可能&ldquo;说谎&rdquo;的边界处进行的校验。这套思维模型，几乎可以迁移到你接下来用 AI 工具驾驭的任何应用上。">You now know the shape of a small, well-organized React app: a rulebook of pure functions, a conductor holding state, instrument components that only ever render props and report callbacks, one carefully guarded door to the outside world, and validation at every boundary where data could lie to you. That mental model transfers to almost any app you'll steer an AI tool through next.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+  </main>
+
+</body>
+</html>
